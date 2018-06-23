@@ -43,7 +43,7 @@ namespace NetChannel
             readOffset += addValue;
             if (readOffset > writeOffset)
             {
-                throw new ArgumentOutOfRangeException("read offset out of write offset.");
+                throw new ArgumentOutOfRangeException("read offset out of buffer.");
             }
 
             if (readOffset >= BlockSize)

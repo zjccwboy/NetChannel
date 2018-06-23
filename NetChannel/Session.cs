@@ -122,6 +122,10 @@ namespace NetChannel
 
             if(sessionType == SessionType.Client)
             {
+                if(currentChannel == null)
+                {
+                    return;
+                }
                 var timeSpan = now - currentChannel.LastSendHeartbeat;
                 if (timeSpan.TotalMilliseconds > HeartbeatTime)
                 {

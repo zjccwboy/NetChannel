@@ -62,26 +62,29 @@ namespace NetChannel
         /// <summary>
         /// 错误回调事件
         /// </summary>
-        public Action<ANetChannel, SocketError> OnError;
+        public Action<ANetChannel> OnError;
         /// <summary>
-        /// 通道关闭事件
+        /// 连接成功回调
         /// </summary>
-        /// <returns></returns>
-        public Action<ANetChannel> OnClose;
+        public Action<ANetChannel> OnConnect;
+        /// <summary>
+        /// 连接断开回调
+        /// </summary>
+        public Action<ANetChannel> OnDisConnect;
         /// <summary>
         /// 连接状态
         /// </summary>
-        public bool Connected { get; protected set; }
+        public bool Connected { get; set; }
         /// <summary>
         /// 开始连接
         /// </summary>
         /// <returns></returns>
-        public abstract Task<bool> StartConnecting();
+        public abstract Task StartConnecting();
         /// <summary>
         /// 重新连接
         /// </summary>
         /// <returns></returns>
-        public abstract Task<bool> ReConnecting();
+        public abstract void ReConnecting();
         /// <summary>
         /// 断开连接
         /// </summary>

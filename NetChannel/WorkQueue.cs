@@ -103,7 +103,10 @@ namespace NetChannel
                             {
                                 if (secondQueue.TryDequeue(out sendTask))
                                 {
-                                    sendTask.WriteToBuffer();
+                                    if (sendTask.Channel.Connected)
+                                    {
+                                        sendTask.WriteToBuffer();
+                                    }
                                 }
                             }
                         }
@@ -122,7 +125,10 @@ namespace NetChannel
                             {
                                 if (firstQueue.TryDequeue(out sendTask))
                                 {
-                                    sendTask.WriteToBuffer();
+                                    if (sendTask.Channel.Connected)
+                                    {
+                                        sendTask.WriteToBuffer();
+                                    }
                                 }
                             }
                         }

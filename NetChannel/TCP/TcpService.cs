@@ -13,7 +13,6 @@ namespace NetChannel
     {
         private TcpListener tcpListener;
         private IPEndPoint endPoint;
-        private TcpClient client;
 
         public TcpService(IPEndPoint endPoint, Session session) : base(session)
         {
@@ -43,11 +42,11 @@ namespace NetChannel
                     var client = await tcpListener.AcceptTcpClientAsync();
                     var channel = new TcpChannel(endPoint);
                     channel.Client = client;
-                    channel.OnError = DoServerError;
-                    channel.OnClose = DoClose;
+                    channel.OnDisConnect = RemoveChannel;
                     AddChannel(channel);
                     AddHandler(channel);
                     Console.WriteLine("Accept 成功");
+                    channel.Connected = true;
                     channel.StartRecv();
                 }
                 catch(Exception e)
@@ -59,16 +58,16 @@ namespace NetChannel
 
         public override async Task<ANetChannel> ConnectAsync()
         {
-            client = new TcpClient();
             var channel = new TcpChannel(endPoint);
-            channel.Client = client;
+            channel.OnConnect = (c) =>
+            {
+               channel.StartRecv();
+               Console.WriteLine("Connect 成功");
+            };
             await channel.StartConnecting();
-            channel.OnError = DoClientError;
-            channel.OnClose = DoClose;
+            channel.OnDisConnect = RemoveChannel;
             AddChannel(channel);
             AddHandler(channel);
-            Console.WriteLine("Connect 成功");
-            channel.StartRecv();
             return channel;
         }
 
@@ -83,25 +82,11 @@ namespace NetChannel
             Handlers[channel.Id] = handlers;
         }
 
-        private async void DoClientError(ANetChannel channel, SocketError socketError)
-        {
-            if (!await channel.ReConnecting())
-            {
-                Handlers.TryRemove(channel.Id, out IEnumerable<IMessageHandler> handler);
-                Channels.TryRemove(channel.Id, out ANetChannel valu);
-            }
-        }
-
-        private void DoServerError(ANetChannel channel, SocketError socketError)
+        private void RemoveChannel(ANetChannel channel)
         {
             Handlers.TryRemove(channel.Id, out IEnumerable<IMessageHandler> handler);
             Channels.TryRemove(channel.Id, out ANetChannel valu);
         }
 
-        private void DoClose(ANetChannel channel)
-        {
-            Handlers.TryRemove(channel.Id, out IEnumerable<IMessageHandler> handler);
-            Channels.TryRemove(channel.Id, out ANetChannel valu);
-        }
     }
 }

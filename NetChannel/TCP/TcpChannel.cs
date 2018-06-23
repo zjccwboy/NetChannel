@@ -36,9 +36,9 @@ namespace NetChannel
         /// 构造函数
         /// </summary>
         /// <param name="endPoint">Ip/端口</param>
-        public TcpChannel(IPEndPoint endPoint):base()
+        public TcpChannel(IPEndPoint endPoint) : base()
         {
-            this.endPoint = endPoint;            
+            this.endPoint = endPoint;
             RecvParser = new PacketParser();
             SendParser = new PacketParser();
         }
@@ -47,75 +47,72 @@ namespace NetChannel
         /// 开始连接
         /// </summary>
         /// <returns></returns>
-        public override async Task<bool> StartConnecting()
+        public override async Task StartConnecting()
         {
-            if (Connected)
-                return true;
             try
             {
+                Client = Client ?? new TcpClient();
                 await Client.ConnectAsync(endPoint.Address, endPoint.Port);
-                if (CallConnect())
+                var isConnected = await CheckConnection();
+                if (isConnected)
                 {
                     Connected = true;
-                    return true;
+                    OnConnect?.Invoke(this);
                 }
                 else
                 {
-                    await Task.Delay(3000).ContinueWith(async (t) =>
+                    await Task.Delay(3000).ContinueWith((t) =>
                     {
-                        await StartConnecting();
+                        if (!Connected)
+                        {
+                            Console.WriteLine("重新连接...");
+                            ReConnecting();
+                        }
                     });
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Console.Write(e.ToString());
             }
-            return false;
         }
 
         /// <summary>
         /// 重连
         /// </summary>
         /// <returns></returns>
-        public override async Task<bool> ReConnecting()
+        public override async void ReConnecting()
         {
-            int retry = 0;
-            while (true)
-            {
-                if (!CallConnect() && Connected)
-                {
-                    Client.Close();
-                    Client = new TcpClient();
-                    Connected = false;
-                }
-                var isSuccess = await StartConnecting();
-                if (isSuccess)
-                {
-                    return true;
-                }
-                retry++;
-                if(retry == 5)
-                {
-                    return false;
-                }
-            }
+            DisConnect();
+            Client = new TcpClient();
+            Connected = false;
+            await StartConnecting();
         }
 
-        private bool CallConnect()
+        private async Task<bool> CheckConnection()
         {
             try
             {
-                return !((Client.Client.Poll(1000, SelectMode.SelectRead) && (Client.Client.Available == 0)) || !Client.Client.Connected);
+                if (Client.Client.Poll(1000, SelectMode.SelectRead))
+                {
+                    if (Client.Client.Available == 0)
+                    {
+                        return false;
+                    }
+                    return true;
+                }
+                var cancellationTokenSource = new CancellationTokenSource(2000);
+                var checkData = await CallRequestAsync(new Packet(), cancellationTokenSource.Token);
+                return checkData.IsSuccess;
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Console.Write(e.ToString());
                 return false;
             }
         }
 
-        
+
         /// <summary>
         /// 异步发送
         /// </summary>
@@ -139,10 +136,10 @@ namespace NetChannel
                     SendParser.Buffer.UpdateRead(SendParser.Buffer.FirstCount);
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 Console.Write(e.ToString());
-                OnError?.Invoke(this, SocketError.SocketError);
+                DoError();
             }
             finally
             {
@@ -158,7 +155,7 @@ namespace NetChannel
         {
             SendParser.WriteBuffer(packet);
         }
-        
+
         /// <summary>
         /// 发送缓冲区队列中的数据(合并发送)
         /// </summary>
@@ -172,10 +169,15 @@ namespace NetChannel
                     return;
                 }
 
+                if (!Connected)
+                {
+                    return;
+                }
+
                 LastSendHeartbeat = DateTime.Now;
                 var netStream = Client.GetStream();
 
-                if(netStream == null)
+                if (netStream == null)
                 {
                     return;
                 }
@@ -193,7 +195,7 @@ namespace NetChannel
             catch (Exception e)
             {
                 Console.Write(e.ToString());
-                OnError?.Invoke(this, SocketError.SocketError);
+                DoError();
             }
         }
 
@@ -210,10 +212,62 @@ namespace NetChannel
             {
                 if (rpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
                 {
-                    tcs.TrySetResult(new Packet { IsSuccess = false});
+                    tcs.TrySetResult(new Packet { IsSuccess = false });
                 }
             });
-            await RequestAsync(packet, (p) => tcs.SetResult(p));
+            packet.IsRpc = true;
+            packet.RpcId = RpcId;
+            //插入RPC请求处理回调方法
+            if (rpcDictionarys.TryAdd(packet.RpcId, (p) => tcs.SetResult(p)))
+            {
+                await SendAsync(packet);
+                var data = await Recv();
+                if (data.IsSuccess)
+                {
+                    if(rpcDictionarys.TryRemove(data.RpcId, out Action<Packet> action))
+                    {
+                        action?.Invoke(data);
+                    }
+                }
+            }
+            return await tcs.Task;
+        }
+
+        private async Task<Packet> Recv()
+        {
+            var tcs = new TaskCompletionSource<Packet>();
+            var netStream = Client.GetStream();
+            if (netStream == null)
+            {
+                throw new SocketException();
+            }
+            if (!netStream.CanRead)
+            {
+                throw new SocketException();
+            }
+
+            var cancellationTokenSource = new CancellationTokenSource(2000);
+            var registration = cancellationTokenSource.Token.Register(() =>
+            {
+                if (!Connected)
+                {
+                    tcs.TrySetResult(new Packet { IsSuccess = false });
+                    DisConnect();
+                }
+            });
+
+            try
+            {
+                var count = await netStream.ReadAsync(RecvParser.Buffer.Last, RecvParser.Buffer.LastOffset, RecvParser.Buffer.LastCount
+    , cancellationTokenSource.Token);
+
+                RecvParser.Buffer.UpdateWrite(count);
+                var data = RecvParser.ReadBuffer();
+                tcs.TrySetResult(data);
+            }
+            catch { }
+
+
             return await tcs.Task;
         }
 
@@ -240,7 +294,7 @@ namespace NetChannel
             packet.IsRpc = true;
             packet.RpcId = RpcId;
             //插入RPC请求处理回调方法
-            if(rpcDictionarys.TryAdd(packet.RpcId, recvAction))
+            if (rpcDictionarys.TryAdd(packet.RpcId, recvAction))
             {
                 await SendAsync(packet);
             }
@@ -280,7 +334,8 @@ namespace NetChannel
                     var count = await netStream.ReadAsync(RecvParser.Buffer.Last, RecvParser.Buffer.LastOffset, RecvParser.Buffer.LastCount);
                     if (count <= 0)
                     {
-                        OnError?.Invoke(this, SocketError.SocketError);
+                        DoError();
+                        return;
                     }
                     RecvParser.Buffer.UpdateWrite(count);
                     while (true)
@@ -316,8 +371,14 @@ namespace NetChannel
             catch (Exception e)
             {
                 Console.Write(e.ToString());
-                OnError?.Invoke(this, SocketError.SocketError);
+                DoError();
             }
+        }
+
+        private void DoError()
+        {
+            DisConnect();
+            OnError?.Invoke(this);
         }
 
         public override void DisConnect()
@@ -325,12 +386,12 @@ namespace NetChannel
             try
             {
                 Connected = false;
-                OnClose?.Invoke(this);
+                OnDisConnect?.Invoke(this);
                 var netStream = Client.GetStream();
                 netStream.Close();
                 netStream.Dispose();
             }
-            catch{}
+            catch { }
 
             try
             {
