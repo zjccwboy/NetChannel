@@ -43,7 +43,7 @@ namespace MergeClient
             {
                 if (channel.Connected)
                 {
-                    for (var i = 0; i < 10000000; i++)
+                    for (var i = 0; i < 100000; i++)
                     {
                         session.Subscribe(send, (packet) =>
                         {
@@ -54,12 +54,12 @@ namespace MergeClient
                                 Console.Read();
                             }
                             Interlocked.Increment(ref count);
-                            if (count == 10000000)
+                            if (count == 100000)
                             {
                                 Console.WriteLine(" {0}毫秒钟响应请求:{1}/条", stopwatch.ElapsedMilliseconds, count);
                                 Console.WriteLine(" 平均1秒钟响应请求:{0}/条", count / (stopwatch.ElapsedMilliseconds / 1000), count);
                             }
-                            if (count > 10000000)
+                            if (count > 100000)
                             {
                                 Console.WriteLine("解包出错");
                             }

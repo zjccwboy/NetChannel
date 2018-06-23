@@ -2,6 +2,7 @@
 using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
+using System.Threading;
 using System.Threading.Tasks;
 
 namespace NetChannel
@@ -45,9 +46,10 @@ namespace NetChannel
                 {
                     var client = await tcpListener.AcceptTcpClientAsync();
                     var channel = new TcpChannel(endPoint);
+                    channel.RemoteEndPoint = client.Client.RemoteEndPoint;
+                    channel.LocalEndPoint = client.Client.LocalEndPoint;
                     channel.Client = client;
-                    channel.OnConnect = DoConnect;
-                    channel.OnDisConnect = DoDisConnect;
+                    channel.OnConnect = DoAccept;
                     channel.OnConnect?.Invoke(channel);
                 }
                 catch(Exception e)
@@ -61,7 +63,6 @@ namespace NetChannel
         {
             var channel = new TcpChannel(endPoint);
             channel.OnConnect = DoConnect;
-            channel.OnDisConnect = DoDisConnect;
             var isConnected = await channel.StartConnecting();
             if (!isConnected)
             {
@@ -70,25 +71,35 @@ namespace NetChannel
             return channel;
         }
 
+
+        private volatile bool reConnectIsStart = false;
         private async Task ReConnecting(ANetChannel channel)
         {
-            if (channel.Connected)
+            if (reConnectIsStart)
             {
                 return;
             }
-
-            var isConnected = await channel.ReConnecting();
-            if (!isConnected)
+            reConnectIsStart = true;
+            if (channel.Connected)
             {
-                await Task.Delay(3000).ContinueWith(async (t) =>
-                {
-                    if (!channel.Connected)
-                    {
-                        Console.WriteLine("重新连接...");
-                        await ReConnecting(channel);
-                    }
-                });
+                reConnectIsStart = false;
+                return;
             }
+            Console.WriteLine("重新连接...");
+            var isConnected = await channel.ReConnecting();
+            if (isConnected)
+            {
+                reConnectIsStart = false;
+                return;
+            }
+            await Task.Delay(3000).ContinueWith(async (t) =>
+            {
+                reConnectIsStart = false;
+                if (!channel.Connected)
+                {
+                    await ReConnecting(channel);
+                }
+            });
         }
 
         private void AddChannel(ANetChannel channel)
@@ -102,20 +113,65 @@ namespace NetChannel
             Handlers[channel.Id] = handlers;
         }
 
-        private void DoConnect(ANetChannel channel)
+        private void DoAccept(ANetChannel channel)
         {
-            channel.Connected = true;
-            AddChannel(channel);
-            AddHandler(channel);
-            channel.StartRecv();
-            Console.WriteLine("连接成功...");
+            try
+            {
+                channel.OnDisConnect = DoDisConnectOnServer;
+                channel.Connected = true;
+                AddChannel(channel);
+                AddHandler(channel);
+                channel.StartRecv();
+                Console.WriteLine($"接受客户端:{channel.RemoteEndPoint}连接成功...");
+            }
+            catch(Exception e)
+            {
+                Console.WriteLine(e);
+            }
         }
 
-        private void DoDisConnect(ANetChannel channel)
+        private void DoConnect(ANetChannel channel)
         {
-            Handlers.TryRemove(channel.Id, out IEnumerable<IMessageHandler> handler);
-            Channels.TryRemove(channel.Id, out ANetChannel valu);
-            Console.WriteLine("连接断开...");
+            try
+            {
+                channel.OnDisConnect = DoDisConnectOnClient;
+                channel.Connected = true;
+                AddChannel(channel);
+                AddHandler(channel);
+                channel.StartRecv();
+                Console.WriteLine($"连接服务端:{channel.RemoteEndPoint}成功...");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+        }
+
+        private void DoDisConnectOnServer(ANetChannel channel)
+        {
+            try
+            {
+                Handlers.TryRemove(channel.Id, out IEnumerable<IMessageHandler> handler);
+                Channels.TryRemove(channel.Id, out ANetChannel valu);
+                Console.WriteLine($"客户端:{channel.RemoteEndPoint}连接断开...");
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
+        }
+
+        private async void DoDisConnectOnClient(ANetChannel channel)
+        {
+            try
+            {
+                Console.WriteLine($"与服务端{channel.RemoteEndPoint}连接断开...");
+                await ReConnecting(channel);
+            }
+            catch (Exception e)
+            {
+                Console.WriteLine(e);
+            }
         }
 
     }

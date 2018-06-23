@@ -93,7 +93,7 @@ namespace NetChannel
         }
 
         /// <summary>
-        /// 发布消息
+        /// 发送消息
         /// </summary>
         /// <param name="packet"></param>
         public void SendMessage(Packet packet)
@@ -109,7 +109,7 @@ namespace NetChannel
         /// 发送数据
         /// </summary>
         /// <returns></returns>
-        internal async Task StartSend()
+        public async Task StartSend()
         {
             var channels = netService.Channels.Values;
             foreach (var channel in channels)
@@ -121,7 +121,7 @@ namespace NetChannel
         /// <summary>
         /// 心跳检测
         /// </summary>
-        internal void CheckHeadbeat()
+        public void CheckHeadbeat()
         {
             var now = DateTime.Now;
 
@@ -137,6 +137,10 @@ namespace NetChannel
                 {
                     return;
                 }
+                if (!currentChannel.Connected)
+                {
+                    return;
+                }
                 var timeSpan = now - currentChannel.LastSendHeartbeat;
                 if (timeSpan.TotalMilliseconds > HeartbeatTime)
                 {
@@ -144,6 +148,7 @@ namespace NetChannel
                     {
                         IsHeartbeat = true
                     });
+                    Console.WriteLine("发送心跳包...");
                 }
             }
             else if(sessionType == SessionType.Server)

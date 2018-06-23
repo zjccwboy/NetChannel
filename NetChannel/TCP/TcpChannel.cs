@@ -18,11 +18,6 @@ namespace NetChannel
         public TcpClient Client;
 
         /// <summary>
-        /// Ip/端口
-        /// </summary>
-        private IPEndPoint endPoint;
-
-        /// <summary>
         /// RPC字典
         /// </summary>
         private ConcurrentDictionary<int, Action<Packet>> rpcDictionarys = new ConcurrentDictionary<int, Action<Packet>>();
@@ -38,7 +33,7 @@ namespace NetChannel
         /// <param name="endPoint">Ip/端口</param>
         public TcpChannel(IPEndPoint endPoint) : base()
         {
-            this.endPoint = endPoint;
+            this.DefaultEndPoint = endPoint;
             RecvParser = new PacketParser();
             SendParser = new PacketParser();
         }
@@ -53,8 +48,9 @@ namespace NetChannel
             {
                 Client = Client ?? new TcpClient();
                 Client.NoDelay = true;
-                await Client.ConnectAsync(endPoint.Address, endPoint.Port);
-                Connected = true;
+                await Client.ConnectAsync(DefaultEndPoint.Address, DefaultEndPoint.Port);
+                RemoteEndPoint = DefaultEndPoint;
+                LocalEndPoint = Client.Client.LocalEndPoint;
                 OnConnect?.Invoke(this);
                 return Connected;
             }
@@ -243,6 +239,10 @@ namespace NetChannel
                             {
                                 OnReceive?.Invoke(packet);
                             }
+                        }
+                        else
+                        {
+                            Console.WriteLine("接收到心跳包...");
                         }
                         LastRecvHeartbeat = DateTime.Now;
                     }

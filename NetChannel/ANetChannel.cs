@@ -1,5 +1,5 @@
 ﻿using System;
-using System.Net.Sockets;
+using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -38,7 +38,18 @@ namespace NetChannel
                 return rpcId;
             }
         }
-
+        /// <summary>
+        /// 远程IP端口
+        /// </summary>
+        public EndPoint RemoteEndPoint { get; set; }
+        /// <summary>
+        /// 远程IP端口
+        /// </summary>
+        public EndPoint LocalEndPoint { get; set; }
+        /// <summary>
+        /// 本地IP端口
+        /// </summary>
+        public IPEndPoint DefaultEndPoint { get; protected set; }
         /// <summary>
         /// 接收包解析器
         /// </summary>

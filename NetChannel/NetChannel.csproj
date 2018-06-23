@@ -42,8 +42,8 @@
   <ItemGroup>
     <Compile Include="Buffer.cs" />
     <Compile Include="ANetService.cs" />
-    <Compile Include="MessageHandler\IMessageHandler.cs" />
-    <Compile Include="MessageHandler\MessageHandlerFactory.cs" />
+    <Compile Include="IMessageHandler.cs" />
+    <Compile Include="MessageHandlerFactory.cs" />
     <Compile Include="WorkQueue.cs" />
     <Compile Include="Session.cs" />
     <Compile Include="ANetChannel.cs" />
