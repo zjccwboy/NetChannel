@@ -43,11 +43,11 @@ namespace NetChannel
         /// </summary>
         public EndPoint RemoteEndPoint { get; set; }
         /// <summary>
-        /// 远程IP端口
+        /// 本地IP端口
         /// </summary>
         public EndPoint LocalEndPoint { get; set; }
         /// <summary>
-        /// 本地IP端口
+        /// 如果是服务端则是本地监听IP端口，要是客户端则是远程连接IP端口
         /// </summary>
         public IPEndPoint DefaultEndPoint { get; protected set; }
         /// <summary>
