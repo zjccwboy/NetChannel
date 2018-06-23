@@ -141,6 +141,11 @@ namespace NetChannel
                 {
                     return;
                 }
+                if (!currentChannel.CheckConnection())
+                {
+                    Console.WriteLine($"与服务端:{currentChannel.DefaultEndPoint}失去连接");
+                    currentChannel.DisConnect();
+                }
                 var timeSpan = now - currentChannel.LastSendHeartbeat;
                 if (timeSpan.TotalMilliseconds > HeartbeatTime)
                 {
@@ -148,7 +153,7 @@ namespace NetChannel
                     {
                         IsHeartbeat = true
                     });
-                    Console.WriteLine("发送心跳包...");
+                    Console.WriteLine($"发送心跳包到服务端:{currentChannel.DefaultEndPoint}...");
                 }
             }
             else if(sessionType == SessionType.Server)
@@ -157,8 +162,9 @@ namespace NetChannel
                 foreach(var channel in channels)
                 {
                     var timeSpan = now - channel.LastRecvHeartbeat;
-                    if (timeSpan.TotalMilliseconds > HeartbeatTime)
+                    if (timeSpan.TotalMilliseconds > HeartbeatTime * 4)
                     {
+                        Console.WriteLine($"客户端:{channel.RemoteEndPoint}连接超时，心跳检测断开，心跳时长{timeSpan.TotalMilliseconds}...");
                         channel.DisConnect();
                     }
                 }

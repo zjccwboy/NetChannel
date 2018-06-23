@@ -61,7 +61,7 @@ namespace NetChannel
         /// <summary>
         /// 最后接收心跳时间
         /// </summary>
-        public DateTime LastRecvHeartbeat { get;protected set; }
+        public DateTime LastRecvHeartbeat { get; protected set; } = DateTime.Now;
         /// <summary>
         /// 最后发送心跳时间
         /// </summary>

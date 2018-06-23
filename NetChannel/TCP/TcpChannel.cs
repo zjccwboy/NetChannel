@@ -49,6 +49,7 @@ namespace NetChannel
                 Client = Client ?? new TcpClient();
                 Client.NoDelay = true;
                 await Client.ConnectAsync(DefaultEndPoint.Address, DefaultEndPoint.Port);
+                Connected = true;
                 RemoteEndPoint = DefaultEndPoint;
                 LocalEndPoint = Client.Client.LocalEndPoint;
                 OnConnect?.Invoke(this);
@@ -242,7 +243,7 @@ namespace NetChannel
                         }
                         else
                         {
-                            Console.WriteLine("接收到心跳包...");
+                            Console.WriteLine($"接收到客户端:{RemoteEndPoint}心跳包...");
                         }
                         LastRecvHeartbeat = DateTime.Now;
                     }
