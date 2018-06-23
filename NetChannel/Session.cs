@@ -40,13 +40,14 @@ namespace NetChannel
         /// </summary>
         /// <param name="endPoint"></param>
         /// <returns></returns>
-        public async Task Connect(IPEndPoint endPoint)
+        public async Task<ANetChannel> Connect(IPEndPoint endPoint)
         {
             sessionType = SessionType.Client;
             this.endPoint = endPoint;
             netService = new TcpService(endPoint, this);
             netService.SendQueue.Start();
             currentChannel = await netService.ConnectAsync();
+            return currentChannel;
         }
 
         /// <summary>

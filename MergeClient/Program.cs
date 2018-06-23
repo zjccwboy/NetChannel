@@ -34,32 +34,40 @@ namespace MergeClient
         static async void TestSubscription()
         {
             var session = new Session();
-            await session.Connect(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8989));
+            var channel = await session.Connect(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8989));
             int count = 0;
             var stopwatch = new Stopwatch();
             stopwatch.Start();
             var send = new Packet { Data = BitConverter.GetBytes(999) };
-            for (var i = 0; i < 10000000; i++)
+            while (true)
             {
-                session.Subscribe(send, (packet) =>
+                if (channel.Connected)
                 {
-                    var data = BitConverter.ToInt32(packet.Data, 0);
-                    if (data != 999)
+                    for (var i = 0; i < 10000000; i++)
                     {
-                        Console.WriteLine($"解包出错:{data}");
-                        Console.Read();
+                        session.Subscribe(send, (packet) =>
+                        {
+                            var data = BitConverter.ToInt32(packet.Data, 0);
+                            if (data != 999)
+                            {
+                                Console.WriteLine($"解包出错:{data}");
+                                Console.Read();
+                            }
+                            Interlocked.Increment(ref count);
+                            if (count == 10000000)
+                            {
+                                Console.WriteLine(" {0}毫秒钟响应请求:{1}/条", stopwatch.ElapsedMilliseconds, count);
+                                Console.WriteLine(" 平均1秒钟响应请求:{0}/条", count / (stopwatch.ElapsedMilliseconds / 1000), count);
+                            }
+                            if (count > 10000000)
+                            {
+                                Console.WriteLine("解包出错");
+                            }
+                        });
                     }
-                    Interlocked.Increment(ref count);
-                    if (count == 10000000)
-                    {
-                        Console.WriteLine(" {0}毫秒钟响应请求:{1}/条", stopwatch.ElapsedMilliseconds, count);
-                        Console.WriteLine(" 平均1秒钟响应请求:{0}/条", count / (stopwatch.ElapsedMilliseconds / 1000), count);
-                    }
-                    if (count > 10000000)
-                    {
-                        Console.WriteLine("解包出错");
-                    }
-                });
+                    return;
+                }
+                Thread.Sleep(1);
             }
         }
     }

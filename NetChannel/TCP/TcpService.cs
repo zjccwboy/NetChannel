@@ -46,12 +46,9 @@ namespace NetChannel
                     var client = await tcpListener.AcceptTcpClientAsync();
                     var channel = new TcpChannel(endPoint);
                     channel.Client = client;
-                    channel.OnDisConnect = RemoveChannel;
-                    AddChannel(channel);
-                    AddHandler(channel);
-                    Console.WriteLine("Accept 成功");
-                    channel.Connected = true;
-                    channel.StartRecv();
+                    channel.OnConnect = DoConnect;
+                    channel.OnDisConnect = DoDisConnect;
+                    channel.OnConnect?.Invoke(channel);
                 }
                 catch(Exception e)
                 {
@@ -63,19 +60,13 @@ namespace NetChannel
         public override async Task<ANetChannel> ConnectAsync()
         {
             var channel = new TcpChannel(endPoint);
-            channel.OnConnect = (c) =>
-            {
-               channel.StartRecv();
-               Console.WriteLine("Connect 成功");
-            };
+            channel.OnConnect = DoConnect;
+            channel.OnDisConnect = DoDisConnect;
             var isConnected = await channel.StartConnecting();
             if (!isConnected)
             {
                 await ReConnecting(channel);
             }
-            channel.OnDisConnect = RemoveChannel;
-            AddChannel(channel);
-            AddHandler(channel);
             return channel;
         }
 
@@ -111,10 +102,20 @@ namespace NetChannel
             Handlers[channel.Id] = handlers;
         }
 
-        private void RemoveChannel(ANetChannel channel)
+        private void DoConnect(ANetChannel channel)
+        {
+            channel.Connected = true;
+            AddChannel(channel);
+            AddHandler(channel);
+            channel.StartRecv();
+            Console.WriteLine("连接成功...");
+        }
+
+        private void DoDisConnect(ANetChannel channel)
         {
             Handlers.TryRemove(channel.Id, out IEnumerable<IMessageHandler> handler);
             Channels.TryRemove(channel.Id, out ANetChannel valu);
+            Console.WriteLine("连接断开...");
         }
 
     }

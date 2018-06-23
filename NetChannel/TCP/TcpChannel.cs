@@ -52,6 +52,7 @@ namespace NetChannel
             try
             {
                 Client = Client ?? new TcpClient();
+                Client.NoDelay = true;
                 await Client.ConnectAsync(endPoint.Address, endPoint.Port);
                 Connected = true;
                 OnConnect?.Invoke(this);
