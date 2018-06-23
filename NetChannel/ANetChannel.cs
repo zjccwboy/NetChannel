@@ -1,0 +1,134 @@
+﻿using System;
+using System.Net.Sockets;
+using System.Threading;
+using System.Threading.Tasks;
+
+namespace NetChannel
+{
+    public class IdCreator
+    {
+        private static long id;
+        public static long CreateId()
+        {
+            Interlocked.Increment(ref id);
+            Interlocked.CompareExchange(ref id, 1, long.MaxValue);
+            return id;
+        }
+    }
+
+    /// <summary>
+    /// 网络通道抽象类
+    /// </summary>
+    public abstract class ANetChannel
+    {
+        public long Id { get; private set; }
+
+        public ANetChannel()
+        {
+            Id = IdCreator.CreateId();
+        }
+
+        private int rpcId;
+        public int RpcId
+        {
+            get
+            {
+                Interlocked.Increment(ref rpcId);
+                Interlocked.CompareExchange(ref rpcId, 1, int.MaxValue);
+                return rpcId;
+            }
+        }
+
+        /// <summary>
+        /// 接收包解析器
+        /// </summary>
+        protected PacketParser RecvParser;
+        /// <summary>
+        /// 发送包解析器
+        /// </summary>
+        protected PacketParser SendParser;
+        /// <summary>
+        /// 最后接收心跳时间
+        /// </summary>
+        public DateTime LastRecvHeartbeat { get;protected set; }
+        /// <summary>
+        /// 最后发送心跳时间
+        /// </summary>
+        public DateTime LastSendHeartbeat { get; protected set; }
+        /// <summary>
+        /// 接收回调事件
+        /// </summary>
+        public Action<Packet> OnReceive;
+        /// <summary>
+        /// 错误回调事件
+        /// </summary>
+        public Action<ANetChannel, SocketError> OnError;
+        /// <summary>
+        /// 通道关闭事件
+        /// </summary>
+        /// <returns></returns>
+        public Action<ANetChannel> OnClose;
+        /// <summary>
+        /// 连接状态
+        /// </summary>
+        public bool Connected { get; protected set; }
+        /// <summary>
+        /// 开始连接
+        /// </summary>
+        /// <returns></returns>
+        public abstract Task<bool> StartConnecting();
+        /// <summary>
+        /// 重新连接
+        /// </summary>
+        /// <returns></returns>
+        public abstract Task<bool> ReConnecting();
+        /// <summary>
+        /// 断开连接
+        /// </summary>
+        public abstract void DisConnect();
+        /// <summary>
+        /// 发送数据异步
+        /// </summary>
+        /// <param name="packet"></param>
+        /// <returns></returns>
+        public abstract Task SendAsync(Packet packet);
+        /// <summary>
+        /// 插入请求
+        /// </summary>
+        /// <param name="packet"></param>
+        /// <param name="recvAction"></param>
+        public abstract void AddRequest(Packet packet, Action<Packet> recvAction);
+        /// <summary>
+        /// 把发送数据包写到缓冲区
+        /// </summary>
+        /// <param name="packet"></param>
+        /// <returns></returns>
+        public abstract void WriteSendBuffer(Packet packet);
+        /// <summary>
+        /// 开始发送
+        /// </summary>
+        public abstract Task StartSend();
+        /// <summary>
+        /// 开始接收数据
+        /// </summary>
+        /// <returns></returns>
+        public abstract void StartRecv();
+        /// <summary>
+        /// RPC请求
+        /// </summary>
+        /// <returns></returns>
+        public abstract Task<Packet> CallRequestAsync(Packet packet, CancellationToken cancellationToken);
+        /// <summary>
+        /// RPC请求
+        /// </summary>
+        /// <returns></returns>
+        public abstract Task<Packet> CallRequestAsync(Packet packet);
+        /// <summary>
+        /// RPC请求
+        /// </summary>
+        /// <param name="packet"></param>
+        /// <param name="recvAction"></param>
+        /// <returns></returns>
+        public abstract Task RequestAsync(Packet packet, Action<Packet> recvAction);
+    }
+}
