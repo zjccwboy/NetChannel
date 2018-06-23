@@ -2,6 +2,7 @@
 using System.Collections.Concurrent;
 using System.Collections.Generic;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace NetChannel
 {
@@ -22,7 +23,7 @@ namespace NetChannel
     {
         public ANetChannel Channel { get; set; }
         public Packet Packet { get; set; }
-
+        public DateTime CreateTime { get; private set; } = DateTime.Now;
         public void WriteToBuffer()
         {
             Channel.WriteSendBuffer(Packet);
@@ -35,7 +36,7 @@ namespace NetChannel
     internal class WorkQueue : IDisposable
     {
         private ConcurrentQueue<SendTask> firstQueue = new ConcurrentQueue<SendTask>();
-        private ConcurrentQueue<SendTask> secondQueue = new ConcurrentQueue<SendTask>();        
+        private ConcurrentQueue<SendTask> secondQueue = new ConcurrentQueue<SendTask>();
         private volatile byte state = QueueState.First;
         private Thread thread;
         private AutoResetEvent doSendResetEvent = new AutoResetEvent(false);
@@ -104,10 +105,12 @@ namespace NetChannel
                             {
                                 if (secondQueue.TryDequeue(out sendTask))
                                 {
-                                    if (sendTask.Channel.Connected)
+                                    //如果无连接包丢弃
+                                    if (!sendTask.Channel.Connected)
                                     {
-                                        sendTask.WriteToBuffer();
+                                        continue;
                                     }
+                                    sendTask.WriteToBuffer();
                                 }
                             }
                         }
@@ -126,14 +129,17 @@ namespace NetChannel
                             {
                                 if (firstQueue.TryDequeue(out sendTask))
                                 {
-                                    if (sendTask.Channel.Connected)
+                                    //如果无连接包丢弃
+                                    if (!sendTask.Channel.Connected)
                                     {
-                                        sendTask.WriteToBuffer();
+                                        continue;
                                     }
+                                    sendTask.WriteToBuffer();
                                 }
                             }
                         }
                     }
+                    //发送出去
                     await session.StartSend();
                     enqueueResetEvent.Set();
                     doSendResetEvent.WaitOne(Session.HeartbeatTime);
@@ -144,7 +150,6 @@ namespace NetChannel
             {
                 Console.Write(e.ToString());
             }
-
         }
 
         private void Swap()

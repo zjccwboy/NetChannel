@@ -53,12 +53,8 @@ namespace NetChannel
             {
                 Client = Client ?? new TcpClient();
                 await Client.ConnectAsync(endPoint.Address, endPoint.Port);
-                var isConnected = CheckConnection();
-                if (isConnected)
-                {
-                    Connected = true;
-                    OnConnect?.Invoke(this);
-                }
+                Connected = true;
+                OnConnect?.Invoke(this);
                 return Connected;
             }
             catch (Exception e)

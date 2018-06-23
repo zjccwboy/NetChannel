@@ -18,10 +18,6 @@ namespace NetChannel
         {
             sendQueue = new WorkQueue(session);
             this.endPoint = endPoint;
-            //tcpListener = new TcpListener(endPoint);
-            //tcpListener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            //tcpListener.Server.NoDelay = true;
-            //tcpListener.Start();
         }
 
         private readonly WorkQueue sendQueue;
@@ -73,16 +69,10 @@ namespace NetChannel
                Console.WriteLine("Connect 成功");
             };
             var isConnected = await channel.StartConnecting();
-            if (isConnected)
-            {
-                channel.Connected = true;
-                channel.OnConnect?.Invoke(channel);
-            }
-            else
+            if (!isConnected)
             {
                 await ReConnecting(channel);
             }
-
             channel.OnDisConnect = RemoveChannel;
             AddChannel(channel);
             AddHandler(channel);
