@@ -36,7 +36,7 @@ namespace NetChannel
     {
         private ConcurrentQueue<SendTask> firstQueue = new ConcurrentQueue<SendTask>();
         private ConcurrentQueue<SendTask> secondQueue = new ConcurrentQueue<SendTask>();        
-        private byte state = QueueState.First;
+        private volatile byte state = QueueState.First;
         private Thread thread;
         private AutoResetEvent doSendResetEvent = new AutoResetEvent(false);
         private AutoResetEvent enqueueResetEvent = new AutoResetEvent(false);
@@ -57,17 +57,17 @@ namespace NetChannel
             }
         }
 
-        private int writeCount;
+        private volatile int writeCount;
         public void Enqueue(SendTask sendTask)
         {
             var size = sendTask.Packet.Data == null ? 0 : sendTask.Packet.Data.Length + PacketParser.HeadMaxSize;
-            Thread.VolatileWrite(ref writeCount, writeCount + size);
+            writeCount += size;
             if (writeCount >= short.MaxValue)
             {
                 enqueueResetEvent.WaitOne();
-                Thread.VolatileWrite(ref writeCount, 0);
+                writeCount = 0;
             }
-            switch (Thread.VolatileRead(ref state))
+            switch (state)
             {
                 case QueueState.First:
                     firstQueue.Enqueue(sendTask);
@@ -76,6 +76,7 @@ namespace NetChannel
                     secondQueue.Enqueue(sendTask);
                     break;
             }
+
             doSendResetEvent.Set();
         }
 
@@ -110,7 +111,7 @@ namespace NetChannel
                                 }
                             }
                         }
-                        else
+                        else if(state == QueueState.Second)
                         {
                             if (firstQueue.IsEmpty)
                             {
@@ -136,8 +137,6 @@ namespace NetChannel
                     await session.StartSend();
                     enqueueResetEvent.Set();
                     doSendResetEvent.WaitOne(Session.HeartbeatTime);
-
-                    //心跳检测
                     session.CheckHeadbeat();
                 }
             }
@@ -150,13 +149,13 @@ namespace NetChannel
 
         private void Swap()
         {
-            if (Thread.VolatileRead(ref state) == QueueState.First)
+            if (state == QueueState.First)
             {
-                Thread.VolatileWrite(ref state, QueueState.Second);
+                state = QueueState.Second;
             }
             else
             {
-                Thread.VolatileWrite(ref state, QueueState.First);
+                state = QueueState.First;
             }
         }
 
@@ -168,7 +167,7 @@ namespace NetChannel
                 if (disposing)
                 {
                     doSendResetEvent.Set();
-                    Thread.VolatileWrite(ref state, QueueState.Stop);
+                    state = QueueState.Stop;
                 }
                 disposedValue = true;
             }

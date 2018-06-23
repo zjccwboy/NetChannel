@@ -22,7 +22,7 @@ namespace MergeClient
         static async void TestNotice()
         {
             var session = new Session();
-            await session.Connect(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8887));
+            await session.Connect(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8989));
             Thread.Sleep(200);
             var send = new Packet { Data = BitConverter.GetBytes(999) };
             for(int i=0;i<10;i++)
@@ -34,12 +34,12 @@ namespace MergeClient
         static async void TestSubscription()
         {
             var session = new Session();
-            await session.Connect(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8887));
+            await session.Connect(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8989));
             int count = 0;
             var stopwatch = new Stopwatch();
             stopwatch.Start();
             var send = new Packet { Data = BitConverter.GetBytes(999) };
-            for(var i=0;i< 10000000; i++)
+            for (var i = 0; i < 10000000; i++)
             {
                 session.Subscribe(send, (packet) =>
                 {
@@ -50,12 +50,12 @@ namespace MergeClient
                         Console.Read();
                     }
                     Interlocked.Increment(ref count);
-                    if(count == 10000000)
+                    if (count == 10000000)
                     {
                         Console.WriteLine(" {0}毫秒钟响应请求:{1}/条", stopwatch.ElapsedMilliseconds, count);
                         Console.WriteLine(" 平均1秒钟响应请求:{0}/条", count / (stopwatch.ElapsedMilliseconds / 1000), count);
                     }
-                    if(count > 10000000)
+                    if (count > 10000000)
                     {
                         Console.WriteLine("解包出错");
                     }

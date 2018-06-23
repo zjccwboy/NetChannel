@@ -79,12 +79,17 @@ namespace NetChannel
         /// 开始连接
         /// </summary>
         /// <returns></returns>
-        public abstract Task StartConnecting();
+        public abstract Task<bool> StartConnecting();
+        /// <summary>
+        /// 连接检测
+        /// </summary>
+        /// <returns></returns>
+        public abstract bool CheckConnection();
         /// <summary>
         /// 重新连接
         /// </summary>
         /// <returns></returns>
-        public abstract void ReConnecting();
+        public abstract Task<bool> ReConnecting();
         /// <summary>
         /// 断开连接
         /// </summary>
@@ -116,22 +121,5 @@ namespace NetChannel
         /// </summary>
         /// <returns></returns>
         public abstract void StartRecv();
-        /// <summary>
-        /// RPC请求
-        /// </summary>
-        /// <returns></returns>
-        public abstract Task<Packet> CallRequestAsync(Packet packet, CancellationToken cancellationToken);
-        /// <summary>
-        /// RPC请求
-        /// </summary>
-        /// <returns></returns>
-        public abstract Task<Packet> CallRequestAsync(Packet packet);
-        /// <summary>
-        /// RPC请求
-        /// </summary>
-        /// <param name="packet"></param>
-        /// <param name="recvAction"></param>
-        /// <returns></returns>
-        public abstract Task RequestAsync(Packet packet, Action<Packet> recvAction);
     }
 }

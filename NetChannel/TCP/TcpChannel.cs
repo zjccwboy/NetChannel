@@ -47,63 +47,19 @@ namespace NetChannel
         /// 开始连接
         /// </summary>
         /// <returns></returns>
-        public override async Task StartConnecting()
+        public override async Task<bool> StartConnecting()
         {
             try
             {
                 Client = Client ?? new TcpClient();
                 await Client.ConnectAsync(endPoint.Address, endPoint.Port);
-                var isConnected = await CheckConnection();
+                var isConnected = CheckConnection();
                 if (isConnected)
                 {
                     Connected = true;
                     OnConnect?.Invoke(this);
                 }
-                else
-                {
-                    await Task.Delay(3000).ContinueWith((t) =>
-                    {
-                        if (!Connected)
-                        {
-                            Console.WriteLine("重新连接...");
-                            ReConnecting();
-                        }
-                    });
-                }
-            }
-            catch (Exception e)
-            {
-                Console.Write(e.ToString());
-            }
-        }
-
-        /// <summary>
-        /// 重连
-        /// </summary>
-        /// <returns></returns>
-        public override async void ReConnecting()
-        {
-            DisConnect();
-            Client = new TcpClient();
-            Connected = false;
-            await StartConnecting();
-        }
-
-        private async Task<bool> CheckConnection()
-        {
-            try
-            {
-                if (Client.Client.Poll(1000, SelectMode.SelectRead))
-                {
-                    if (Client.Client.Available == 0)
-                    {
-                        return false;
-                    }
-                    return true;
-                }
-                var cancellationTokenSource = new CancellationTokenSource(2000);
-                var checkData = await CallRequestAsync(new Packet(), cancellationTokenSource.Token);
-                return checkData.IsSuccess;
+                return Connected;
             }
             catch (Exception e)
             {
@@ -112,6 +68,34 @@ namespace NetChannel
             }
         }
 
+        /// <summary>
+        /// 重连
+        /// </summary>
+        /// <returns></returns>
+        public override async Task<bool> ReConnecting()
+        {
+            DisConnect();
+            Client = new TcpClient();
+            Connected = false;
+            return await StartConnecting();
+        }
+
+        /// <summary>
+        /// 检查连接状态
+        /// </summary>
+        /// <returns></returns>
+        public override bool CheckConnection()
+        {
+            try
+            {
+                return !((Client.Client.Poll(1000, SelectMode.SelectRead) && (Client.Client.Available == 0)));                
+            }
+            catch (Exception e)
+            {
+                Console.Write(e.ToString());
+                return false;
+            }
+        }
 
         /// <summary>
         /// 异步发送
@@ -196,107 +180,6 @@ namespace NetChannel
             {
                 Console.Write(e.ToString());
                 DoError();
-            }
-        }
-
-        /// <summary>
-        /// 异步发送一个RPC请求，并且等待信号通知结果，提供请求取消对象
-        /// </summary>
-        /// <param name="packet">发送数据包</param>
-        /// <param name="cancellationToken">提供取消的对象</param>
-        /// <returns></returns>
-        public override async Task<Packet> CallRequestAsync(Packet packet, CancellationToken cancellationToken)
-        {
-            var tcs = new TaskCompletionSource<Packet>();
-            var registration = cancellationToken.Register(() =>
-            {
-                if (rpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
-                {
-                    tcs.TrySetResult(new Packet { IsSuccess = false });
-                }
-            });
-            packet.IsRpc = true;
-            packet.RpcId = RpcId;
-            //插入RPC请求处理回调方法
-            if (rpcDictionarys.TryAdd(packet.RpcId, (p) => tcs.SetResult(p)))
-            {
-                await SendAsync(packet);
-                var data = await Recv();
-                if (data.IsSuccess)
-                {
-                    if(rpcDictionarys.TryRemove(data.RpcId, out Action<Packet> action))
-                    {
-                        action?.Invoke(data);
-                    }
-                }
-            }
-            return await tcs.Task;
-        }
-
-        private async Task<Packet> Recv()
-        {
-            var tcs = new TaskCompletionSource<Packet>();
-            var netStream = Client.GetStream();
-            if (netStream == null)
-            {
-                throw new SocketException();
-            }
-            if (!netStream.CanRead)
-            {
-                throw new SocketException();
-            }
-
-            var cancellationTokenSource = new CancellationTokenSource(2000);
-            var registration = cancellationTokenSource.Token.Register(() =>
-            {
-                if (!Connected)
-                {
-                    tcs.TrySetResult(new Packet { IsSuccess = false });
-                    DisConnect();
-                }
-            });
-
-            try
-            {
-                var count = await netStream.ReadAsync(RecvParser.Buffer.Last, RecvParser.Buffer.LastOffset, RecvParser.Buffer.LastCount
-    , cancellationTokenSource.Token);
-
-                RecvParser.Buffer.UpdateWrite(count);
-                var data = RecvParser.ReadBuffer();
-                tcs.TrySetResult(data);
-            }
-            catch { }
-
-
-            return await tcs.Task;
-        }
-
-        /// <summary>
-        /// 异步发送一个RPC请求，并且等待信号通知结果
-        /// </summary>
-        /// <param name="packet">发送数据包</param>
-        /// <returns></returns>
-        public override async Task<Packet> CallRequestAsync(Packet packet)
-        {
-            var tcs = new TaskCompletionSource<Packet>();
-            await RequestAsync(packet, (p) => tcs.SetResult(p));
-            return await tcs.Task;
-        }
-
-        /// <summary>
-        /// 异步发送一个RPC请求，不等待结果
-        /// </summary>
-        /// <param name="packet">发送数据包</param>
-        /// <param name="recvAction">请求回调方法</param>
-        /// <returns></returns>
-        public override async Task RequestAsync(Packet packet, Action<Packet> recvAction)
-        {
-            packet.IsRpc = true;
-            packet.RpcId = RpcId;
-            //插入RPC请求处理回调方法
-            if (rpcDictionarys.TryAdd(packet.RpcId, recvAction))
-            {
-                await SendAsync(packet);
             }
         }
 

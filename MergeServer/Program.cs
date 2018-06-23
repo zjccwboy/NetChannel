@@ -13,7 +13,7 @@ namespace MergeServer
         static void Main(string[] args)
         {
             var session = new Session();
-            session.Accept(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8887));
+            session.Accept(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8989));
             Console.Read();
         }
     }

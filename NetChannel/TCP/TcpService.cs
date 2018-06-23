@@ -18,10 +18,10 @@ namespace NetChannel
         {
             sendQueue = new WorkQueue(session);
             this.endPoint = endPoint;
-            tcpListener = new TcpListener(endPoint);
-            tcpListener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-            tcpListener.Server.NoDelay = true;
-            tcpListener.Start();
+            //tcpListener = new TcpListener(endPoint);
+            //tcpListener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+            //tcpListener.Server.NoDelay = true;
+            //tcpListener.Start();
         }
 
         private readonly WorkQueue sendQueue;
@@ -35,6 +35,14 @@ namespace NetChannel
 
         public override async Task AcceptAsync()
         {
+            if(tcpListener == null)
+            {
+                tcpListener = new TcpListener(endPoint);
+                tcpListener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                tcpListener.Server.NoDelay = true;
+                tcpListener.Start();
+            }
+
             while (true)
             {
                 try
@@ -64,11 +72,42 @@ namespace NetChannel
                channel.StartRecv();
                Console.WriteLine("Connect 成功");
             };
-            await channel.StartConnecting();
+            var isConnected = await channel.StartConnecting();
+            if (isConnected)
+            {
+                channel.Connected = true;
+                channel.OnConnect?.Invoke(channel);
+            }
+            else
+            {
+                await ReConnecting(channel);
+            }
+
             channel.OnDisConnect = RemoveChannel;
             AddChannel(channel);
             AddHandler(channel);
             return channel;
+        }
+
+        private async Task ReConnecting(ANetChannel channel)
+        {
+            if (channel.Connected)
+            {
+                return;
+            }
+
+            var isConnected = await channel.ReConnecting();
+            if (!isConnected)
+            {
+                await Task.Delay(3000).ContinueWith(async (t) =>
+                {
+                    if (!channel.Connected)
+                    {
+                        Console.WriteLine("重新连接...");
+                        await ReConnecting(channel);
+                    }
+                });
+            }
         }
 
         private void AddChannel(ANetChannel channel)

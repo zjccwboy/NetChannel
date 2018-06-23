@@ -56,6 +56,11 @@ namespace NetChannel
         /// <param name="packet"></param>
         public void Notice(ANetChannel channel, Packet packet)
         {
+            if (!channel.Connected)
+            {
+                return;
+            }
+
             netService.SendQueue.Enqueue(new SendTask
             {
                 Channel = channel,
@@ -71,6 +76,11 @@ namespace NetChannel
         /// <param name="notificationAction"></param>
         public void Subscribe(Packet packet, Action<Packet> notificationAction)
         {
+            if (!currentChannel.Connected)
+            {
+                return;
+            }
+
             packet.IsRpc = true;
             packet.RpcId = currentChannel.RpcId;
             currentChannel.AddRequest(packet, notificationAction);
