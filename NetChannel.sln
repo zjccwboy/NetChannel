@@ -1,21 +1,21 @@
 ﻿
 Microsoft Visual Studio Solution File, Format Version 12.00
 # Visual Studio 15
-VisualStudioVersion = 15.0.27130.2010
+VisualStudioVersion = 15.0.27004.2009
 MinimumVisualStudioVersion = 10.0.40219.1
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetChannel", "NetChannel\NetChannel.csproj", "{B53B8D7E-62E0-4A25-92B5-06E21C2B9443}"
-EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "TestMergeSend", "TestMergeSend", "{7B1147BF-7F87-4EA2-91F6-6EECD2192526}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MergeServer", "MergeServer\MergeServer.csproj", "{4E17E040-D289-4121-B829-3A94D36378DA}"
 	ProjectSection(ProjectDependencies) = postProject
-		{B53B8D7E-62E0-4A25-92B5-06E21C2B9443} = {B53B8D7E-62E0-4A25-92B5-06E21C2B9443}
+		{3EC5915D-B7DC-4C6C-AC42-4CF00C17ADDC} = {3EC5915D-B7DC-4C6C-AC42-4CF00C17ADDC}
 	EndProjectSection
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "MergeClient", "MergeClient\MergeClient.csproj", "{80DA0EAA-2307-40BA-AC75-BF930350D51E}"
 	ProjectSection(ProjectDependencies) = postProject
-		{B53B8D7E-62E0-4A25-92B5-06E21C2B9443} = {B53B8D7E-62E0-4A25-92B5-06E21C2B9443}
+		{3EC5915D-B7DC-4C6C-AC42-4CF00C17ADDC} = {3EC5915D-B7DC-4C6C-AC42-4CF00C17ADDC}
 	EndProjectSection
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "NetChannel", "NetChannel\NetChannel.csproj", "{3EC5915D-B7DC-4C6C-AC42-4CF00C17ADDC}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -23,10 +23,6 @@ Global
 		Release|Any CPU = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(ProjectConfigurationPlatforms) = postSolution
-		{B53B8D7E-62E0-4A25-92B5-06E21C2B9443}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
-		{B53B8D7E-62E0-4A25-92B5-06E21C2B9443}.Debug|Any CPU.Build.0 = Debug|Any CPU
-		{B53B8D7E-62E0-4A25-92B5-06E21C2B9443}.Release|Any CPU.ActiveCfg = Release|Any CPU
-		{B53B8D7E-62E0-4A25-92B5-06E21C2B9443}.Release|Any CPU.Build.0 = Release|Any CPU
 		{4E17E040-D289-4121-B829-3A94D36378DA}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
 		{4E17E040-D289-4121-B829-3A94D36378DA}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{4E17E040-D289-4121-B829-3A94D36378DA}.Release|Any CPU.ActiveCfg = Release|Any CPU
@@ -35,6 +31,10 @@ Global
 		{80DA0EAA-2307-40BA-AC75-BF930350D51E}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{80DA0EAA-2307-40BA-AC75-BF930350D51E}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{80DA0EAA-2307-40BA-AC75-BF930350D51E}.Release|Any CPU.Build.0 = Release|Any CPU
+		{3EC5915D-B7DC-4C6C-AC42-4CF00C17ADDC}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{3EC5915D-B7DC-4C6C-AC42-4CF00C17ADDC}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{3EC5915D-B7DC-4C6C-AC42-4CF00C17ADDC}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{3EC5915D-B7DC-4C6C-AC42-4CF00C17ADDC}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
