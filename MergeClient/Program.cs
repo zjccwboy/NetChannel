@@ -64,7 +64,11 @@ namespace MergeClient
                                 Interlocked.Increment(ref count);
                                 if (count == sendCount)
                                 {
-                                    Console.WriteLine(" {0}毫秒钟响应请求:{1}/条", stopwatch.ElapsedMilliseconds, count);
+                                    Console.WriteLine($"{stopwatch.ElapsedMilliseconds}毫秒钟响应请求:{count}/条");
+                                }
+                                if(count > sendCount)
+                                {
+                                    Console.WriteLine($"接收到数据包:{count}个与发送数据包:{sendCount}个不一致...");
                                 }
                             });
                         }

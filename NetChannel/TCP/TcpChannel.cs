@@ -222,6 +222,7 @@ namespace NetChannel
                         {
                             break;
                         }
+                        LastRecvHeartbeat = DateTime.Now;
                         if (!packet.IsHeartbeat)
                         {
                             if (packet.IsRpc)
@@ -245,7 +246,6 @@ namespace NetChannel
                         {
                             //Console.WriteLine($"接收到客户端:{RemoteEndPoint}心跳包...");
                         }
-                        LastRecvHeartbeat = DateTime.Now;
                     }
                 }
             }
