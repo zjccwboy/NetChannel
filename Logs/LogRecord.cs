@@ -8,9 +8,10 @@ using Serialize;
 
 namespace Logs
 {
+    //https://www.cnblogs.com/taiyonghai/p/6124781.html
     public class LogRecord
     {
-        private const string repository = "aaaaaaaaaaaa";
+        private const string repository = "logger.file.debug";
 
         static LogRecord()
         {

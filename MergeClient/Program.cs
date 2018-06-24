@@ -7,9 +7,8 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
-using log4net;
-using log4net.Config;
 using System.IO;
+using Logs;
 
 namespace MergeClient
 {
@@ -17,7 +16,6 @@ namespace MergeClient
     {
         static void Main(string[] args)
         {
-            InitLog4Net();
             //TestNotice();
             TestSubscription();
             Console.Read();
@@ -68,11 +66,13 @@ namespace MergeClient
                                 Interlocked.Increment(ref count);
                                 if (count == sendCount)
                                 {
-                                    Console.WriteLine($"{stopwatch.ElapsedMilliseconds}毫秒钟响应请求:{count}/条");
+                                    //Console.WriteLine($"{stopwatch.ElapsedMilliseconds}毫秒钟响应请求:{count}/条");
+                                    LogRecord.Log(LogLevel.Info, "接收数据包", $"{stopwatch.ElapsedMilliseconds}毫秒钟响应请求:{count}/条");
                                 }
                                 if(count > sendCount)
                                 {
-                                    Console.WriteLine($"接收到数据包:{count}个与发送数据包:{sendCount}个不一致...");
+                                    //Console.WriteLine($"接收到数据包:{count}个与发送数据包:{sendCount}个不一致...");
+                                    LogRecord.Log(LogLevel.Info, "接收数据包", $"接收到数据包:{count}个与发送数据包:{sendCount}个不一致...");
                                 }
                             });
                         }
@@ -90,14 +90,6 @@ namespace MergeClient
                 Thread.Sleep(1000);
                 stopwatch.Restart();
             }
-        }
-
-        public static void InitLog4Net()
-        {
-            //配置文件
-            var logCfg = new FileInfo(Directory.GetCurrentDirectory() + "log4net.config");
-            //加载配置
-            XmlConfigurator.ConfigureAndWatch(logCfg);
         }
     }
 }
