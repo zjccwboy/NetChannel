@@ -7,6 +7,9 @@ using System.Net;
 using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
+using log4net;
+using log4net.Config;
+using System.IO;
 
 namespace MergeClient
 {
@@ -14,6 +17,7 @@ namespace MergeClient
     {
         static void Main(string[] args)
         {
+            InitLog4Net();
             //TestNotice();
             TestSubscription();
             Console.Read();
@@ -86,6 +90,14 @@ namespace MergeClient
                 Thread.Sleep(1000);
                 stopwatch.Restart();
             }
+        }
+
+        public static void InitLog4Net()
+        {
+            //配置文件
+            var logCfg = new FileInfo(Directory.GetCurrentDirectory() + "log4net.config");
+            //加载配置
+            XmlConfigurator.ConfigureAndWatch(logCfg);
         }
     }
 }
