@@ -3,6 +3,9 @@ using System.Net;
 
 namespace NetChannel
 {
+    /// <summary>
+    /// 数据包体结构
+    /// </summary>
     public struct Packet
     {
         /// <summary>
@@ -41,15 +44,29 @@ namespace NetChannel
         public byte[] Data;
     }
 
+    /// <summary>
+    /// 包状态
+    /// </summary>
     public enum ParseState
     {
+        /// <summary>
+        /// 包头
+        /// </summary>
         Head,
+
+        /// <summary>
+        /// RPC消息
+        /// </summary>
         Rpc,
+
+        /// <summary>
+        /// 包体
+        /// </summary>
         Body,
     }
 
     /// <summary>
-    /// 该类主要
+    /// 包解析类
     /// </summary>
     public class PacketParser
     {
@@ -71,7 +88,7 @@ namespace NetChannel
 
         public static readonly int PacketFlagSize = sizeof(short);
         public static readonly int BitFlagSize = sizeof(byte);
-        public static readonly int RpcFlagSize = sizeof(UInt32);
+        public static readonly int RpcFlagSize = sizeof(int);
         public static readonly int HeadMinSize = PacketFlagSize + BitFlagSize;
         public static readonly int HeadMaxSize = PacketFlagSize + BitFlagSize + RpcFlagSize;
         public static readonly int BodyMaxSize = short.MaxValue - HeadMaxSize;
@@ -226,7 +243,7 @@ namespace NetChannel
         public void Clear()
         {
             Flush();
-            Buffer.Flush();            
+            Buffer.Flush();
         }
 
         public Packet ReadBuffer()
