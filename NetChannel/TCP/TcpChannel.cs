@@ -243,7 +243,7 @@ namespace NetChannel
                         }
                         else
                         {
-                            Console.WriteLine($"接收到客户端:{RemoteEndPoint}心跳包...");
+                            //Console.WriteLine($"接收到客户端:{RemoteEndPoint}心跳包...");
                         }
                         LastRecvHeartbeat = DateTime.Now;
                     }

@@ -63,7 +63,7 @@ namespace NetChannel
             writeCount += size;
             if (writeCount >= short.MaxValue)
             {
-                enqueueResetEvent.WaitOne();
+                enqueueResetEvent.WaitOne(1);
                 writeCount = 0;
             }
             switch (state)
@@ -140,7 +140,7 @@ namespace NetChannel
                     //发送出去
                     await session.StartSend();
                     enqueueResetEvent.Set();
-                    doSendResetEvent.WaitOne(Session.HeartbeatTime);
+                    doSendResetEvent.WaitOne(1);
                     session.CheckHeadbeat();
                 }
             }

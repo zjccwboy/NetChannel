@@ -35,7 +35,6 @@ namespace MergeClient
         {
             var session = new Session();
             var channel = await session.Connect(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8989));
-            int count = 0;
             var stopwatch = new Stopwatch();
             stopwatch.Start();
             var send = new Packet { Data = BitConverter.GetBytes(999) };
@@ -43,31 +42,45 @@ namespace MergeClient
             {
                 if (channel.Connected)
                 {
-                    for (var i = 0; i < 100; i++)
+                    int sendCount = 1000;
+                    int count = 0;
+                    int i = 0;
+                    while (true)
                     {
-                        session.Subscribe(send, (packet) =>
+                        if (!channel.Connected)
                         {
-                            var data = BitConverter.ToInt32(packet.Data, 0);
-                            if (data != 999)
+                            break;
+                        }
+                        if(i < sendCount)
+                        {
+                            session.Subscribe(send, (packet) =>
                             {
-                                Console.WriteLine($"解包出错:{data}");
-                                Console.Read();
-                            }
-                            Interlocked.Increment(ref count);
-                            if (count == 100)
-                            {
-                                Console.WriteLine(" {0}毫秒钟响应请求:{1}/条", stopwatch.ElapsedMilliseconds, count);
-                                Console.WriteLine(" 平均1秒钟响应请求:{0}/条", (int)(count / ((double)stopwatch.ElapsedMilliseconds / 1000)), count);
-                            }
-                            if (count > 100)
-                            {
-                                Console.WriteLine("解包出错");
-                            }
-                        });
+                                var data = BitConverter.ToInt32(packet.Data, 0);
+                                if (data != 999)
+                                {
+                                    Console.WriteLine($"解包出错:{data}");
+                                    Console.Read();
+                                }
+                                Interlocked.Increment(ref count);
+                                if (count == sendCount)
+                                {
+                                    Console.WriteLine(" {0}毫秒钟响应请求:{1}/条", stopwatch.ElapsedMilliseconds, count);
+                                }
+                            });
+                        }
+                        else
+                        {
+                            Thread.Sleep(1);
+                        }
+                        if(count == sendCount)
+                        {
+                            break;
+                        }
+                        i++;
                     }
-                    return;
                 }
-                Thread.Sleep(1);
+                Thread.Sleep(1000);
+                stopwatch.Restart();
             }
         }
     }
