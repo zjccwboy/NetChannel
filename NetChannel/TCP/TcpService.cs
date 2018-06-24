@@ -109,8 +109,11 @@ namespace NetChannel
 
         private void AddHandler(ANetChannel channel)
         {
-            var handlers = MessageHandlerFactory.CreateHandlers(channel, this);
-            Handlers[channel.Id] = handlers;
+            if (!Handlers.ContainsKey(channel.Id))
+            {
+                var handlers = MessageHandlerFactory.CreateHandlers(channel, this);
+                Handlers[channel.Id] = handlers;
+            }
         }
 
         private void DoAccept(ANetChannel channel)
@@ -151,9 +154,11 @@ namespace NetChannel
         {
             try
             {
-                Handlers.TryRemove(channel.Id, out IEnumerable<IMessageHandler> handler);
-                Channels.TryRemove(channel.Id, out ANetChannel valu);
-                Console.WriteLine($"客户端:{channel.RemoteEndPoint}连接断开...");
+                if(Channels.TryRemove(channel.Id, out ANetChannel valu))
+                {
+                    Handlers.TryRemove(channel.Id, out IEnumerable<IMessageHandler> handler);
+                    Console.WriteLine($"客户端:{channel.RemoteEndPoint}连接断开...");
+                }
             }
             catch (Exception e)
             {
@@ -165,8 +170,11 @@ namespace NetChannel
         {
             try
             {
-                Console.WriteLine($"与服务端{channel.RemoteEndPoint}连接断开...");
-                await ReConnecting(channel);
+                if(Channels.TryRemove(channel.Id, out ANetChannel valu))
+                {
+                    Console.WriteLine($"与服务端{channel.RemoteEndPoint}连接断开...");
+                    await ReConnecting(channel);
+                }
             }
             catch (Exception e)
             {
