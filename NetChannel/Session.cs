@@ -142,11 +142,12 @@ namespace NetChannel
                 {
                     return;
                 }
-                if (!currentChannel.CheckConnection())
-                {
-                    LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"与服务端:{currentChannel.DefaultEndPoint}失去连接");
-                    currentChannel.DisConnect();
-                }
+                //这块代码有bug，0字节检测为false时未必是断线
+                //if (!currentChannel.CheckConnection())
+                //{
+                //    LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"与服务端:{currentChannel.DefaultEndPoint}失去连接");
+                //    currentChannel.DisConnect();
+                //}
                 var timeSpan = now - currentChannel.LastSendHeartbeat;
                 if (timeSpan.TotalMilliseconds > HeartbeatTime)
                 {
