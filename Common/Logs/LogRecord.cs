@@ -37,7 +37,7 @@ namespace Common
 
         public static void Log(LogLevel level, string description, object logRecord)
         {
-            WriteLog(level, description, logRecord.ToJson(), null);
+            WriteLog(level, description, logRecord.ConvertToJson(), null);
         }
 
         public static void Log(LogLevel level, string description, Exception exception)
