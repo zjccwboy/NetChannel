@@ -8,7 +8,7 @@ using System.Text;
 using System.Threading;
 using System.Threading.Tasks;
 using System.IO;
-using Logs;
+using Common;
 
 namespace MergeClient
 {
@@ -67,7 +67,7 @@ namespace MergeClient
                                 if (count == sendCount)
                                 {
                                     //Console.WriteLine($"{stopwatch.ElapsedMilliseconds}毫秒钟响应请求:{count}/条");
-                                    LogRecord.Log(LogLevel.Fatal, "接收数据包", $"{stopwatch.ElapsedMilliseconds}毫秒钟响应请求:{count}/条");
+                                    LogRecord.Log(LogLevel.Info, "接收数据包", $"{stopwatch.ElapsedMilliseconds}毫秒钟响应请求:{count}/条");
                                 }
                                 if(count > sendCount)
                                 {

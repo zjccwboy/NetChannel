@@ -43,3 +43,17 @@
 /Logs/obj/Debug/netstandard2.0/Logs.pdb
 /Logs/obj
 /Serialize/obj/Debug/netstandard2.0
+/Common/bin/Debug/netstandard2.0/Common.deps.json
+/Common/bin/Debug/netstandard2.0/Common.dll
+/Common/bin/Debug/netstandard2.0/Common.pdb
+/Common/bin/Debug/netstandard2.0/Logs/log4net.config
+/Common/obj/Debug/netstandard2.0/Common.AssemblyInfo.cs
+/Common/obj/Debug/netstandard2.0/Common.AssemblyInfoInputs.cache
+/Common/obj/Debug/netstandard2.0/Common.csproj.CoreCompileInputs.cache
+/Common/obj/Debug/netstandard2.0/Common.csproj.FileListAbsolute.txt
+/Common/obj/Debug/netstandard2.0/Common.csprojResolveAssemblyReference.cache
+/Common/obj/Debug/netstandard2.0/Common.dll
+/Common/obj/Debug/netstandard2.0/Common.pdb
+/Common/obj/Common.csproj.nuget.cache
+/Common/obj/Common.csproj.nuget.g.props
+/Common/obj/Common.csproj.nuget.g.targets

@@ -2,7 +2,7 @@
 using System.Collections.Generic;
 using System.Text;
 
-namespace Logs
+namespace Common
 {
     /// <summary>
     /// 日志级别
@@ -10,11 +10,11 @@ namespace Logs
     public enum LogLevel
     {
         /// <summary>
-        /// 调试日志，比如程序加载
+        /// 调试日志，项目测试阶段日志
         /// </summary>
         Debug,
         /// <summary>
-        /// 信息日志
+        /// 信息日志，比如程序加载
         /// </summary>
         Info,
         /// <summary>

@@ -5,8 +5,8 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Reference Include="Logs">
-      <HintPath>..\Logs\bin\Debug\netstandard2.0\Logs.dll</HintPath>
+    <Reference Include="Common">
+      <HintPath>..\Common\bin\Debug\netstandard2.0\Common.dll</HintPath>
     </Reference>
   </ItemGroup>
 

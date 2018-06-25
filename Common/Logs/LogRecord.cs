@@ -4,7 +4,6 @@ using System;
 using System.Collections.Generic;
 using System.IO;
 using System.Text;
-using Serialize;
 using System.Diagnostics;
 using System.Reflection;
 using log4net.Core;
@@ -12,7 +11,7 @@ using System.Linq;
 
 [assembly: XmlConfigurator(ConfigFile = "Log4net.config", Watch = true)]
 
-namespace Logs
+namespace Common
 {
     public class LogRecord
     {

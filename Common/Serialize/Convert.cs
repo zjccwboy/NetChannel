@@ -1,6 +1,6 @@
 ﻿using Newtonsoft.Json;
 
-namespace Serialize
+namespace Common
 {
     public static class Convert
     {
