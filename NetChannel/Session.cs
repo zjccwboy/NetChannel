@@ -3,6 +3,7 @@ using System.Net;
 using System.Threading.Tasks;
 using System.Threading;
 using System;
+using Logs;
 
 namespace NetChannel
 {
@@ -143,7 +144,7 @@ namespace NetChannel
                 }
                 if (!currentChannel.CheckConnection())
                 {
-                    Console.WriteLine($"与服务端:{currentChannel.DefaultEndPoint}失去连接");
+                    LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"与服务端:{currentChannel.DefaultEndPoint}失去连接");
                     currentChannel.DisConnect();
                 }
                 var timeSpan = now - currentChannel.LastSendHeartbeat;
@@ -153,7 +154,7 @@ namespace NetChannel
                     {
                         IsHeartbeat = true
                     });
-                    Console.WriteLine($"发送心跳包到服务端:{currentChannel.DefaultEndPoint}...");
+                    LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"发送心跳包到服务端:{currentChannel.DefaultEndPoint}...");
                 }
             }
             else if(sessionType == SessionType.Server)
@@ -164,7 +165,7 @@ namespace NetChannel
                     var timeSpan = now - channel.LastRecvHeartbeat;
                     if (timeSpan.TotalMilliseconds > HeartbeatTime * 4)
                     {
-                        Console.WriteLine($"客户端:{channel.RemoteEndPoint}连接超时，心跳检测断开，心跳时长{timeSpan.TotalMilliseconds}...");
+                        LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"客户端:{channel.RemoteEndPoint}连接超时，心跳检测断开，心跳时长{timeSpan.TotalMilliseconds}...");
                         channel.DisConnect();
                     }
                 }

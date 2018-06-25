@@ -41,6 +41,11 @@ namespace Logs
             WriteLog(level, description, logRecord.ToJson(), null);
         }
 
+        public static void Log(LogLevel level, string description, Exception exception)
+        {
+            WriteLog(level, description, string.Empty, exception);
+        }
+
         public static void Log(string description, Exception exception)
         {
             WriteLog(LogLevel.Error, description, string.Empty, exception);

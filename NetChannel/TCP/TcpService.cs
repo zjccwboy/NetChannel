@@ -4,6 +4,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
+using Logs;
 
 namespace NetChannel
 {
@@ -85,7 +86,7 @@ namespace NetChannel
                 reConnectIsStart = false;
                 return;
             }
-            Console.WriteLine("重新连接...");
+            LogRecord.Log(LogLevel.Info, "ReConnecting", "重新连接...");
             var isConnected = await channel.ReConnecting();
             if (isConnected)
             {
@@ -125,7 +126,7 @@ namespace NetChannel
                 AddChannel(channel);
                 AddHandler(channel);
                 channel.StartRecv();
-                Console.WriteLine($"接受客户端:{channel.RemoteEndPoint}连接成功...");
+                LogRecord.Log(LogLevel.Info, "DoAccept", $"接受客户端:{channel.RemoteEndPoint}连接成功...");
             }
             catch(Exception e)
             {
@@ -142,7 +143,7 @@ namespace NetChannel
                 AddChannel(channel);
                 AddHandler(channel);
                 channel.StartRecv();
-                Console.WriteLine($"连接服务端:{channel.RemoteEndPoint}成功...");
+                LogRecord.Log(LogLevel.Info, "DoAccept", $"连接服务端:{channel.RemoteEndPoint}成功...");
             }
             catch (Exception e)
             {
@@ -157,7 +158,7 @@ namespace NetChannel
                 if(Channels.TryRemove(channel.Id, out ANetChannel valu))
                 {
                     Handlers.TryRemove(channel.Id, out IEnumerable<IMessageHandler> handler);
-                    Console.WriteLine($"客户端:{channel.RemoteEndPoint}连接断开...");
+                    LogRecord.Log(LogLevel.Info, "DoAccept", $"客户端:{channel.RemoteEndPoint}连接断开...");
                 }
             }
             catch (Exception e)
@@ -172,7 +173,7 @@ namespace NetChannel
             {
                 if(Channels.TryRemove(channel.Id, out ANetChannel valu))
                 {
-                    Console.WriteLine($"与服务端{channel.RemoteEndPoint}连接断开...");
+                    LogRecord.Log(LogLevel.Info, "DoAccept", $"与服务端{channel.RemoteEndPoint}连接断开...");
                     await ReConnecting(channel);
                 }
             }

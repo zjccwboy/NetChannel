@@ -4,6 +4,7 @@ using System.Net.Sockets;
 using System.Threading;
 using System.Collections.Concurrent;
 using System.Net;
+using Logs;
 
 namespace NetChannel
 {
@@ -57,7 +58,7 @@ namespace NetChannel
             }
             catch (Exception e)
             {
-                Console.Write(e.ToString());
+                LogRecord.Log(LogLevel.Warn, "StartConnecting", e);
                 return false;
             }
         }
@@ -86,7 +87,7 @@ namespace NetChannel
             }
             catch (Exception e)
             {
-                Console.Write(e.ToString());
+                LogRecord.Log(LogLevel.Warn, "CheckConnection", e);
                 return false;
             }
         }
@@ -116,7 +117,7 @@ namespace NetChannel
             }
             catch (Exception e)
             {
-                Console.Write(e.ToString());
+                LogRecord.Log(LogLevel.Warn, "SendAsync", e);
                 DoError();
             }
             finally
@@ -172,7 +173,7 @@ namespace NetChannel
             }
             catch (Exception e)
             {
-                Console.Write(e.ToString());
+                LogRecord.Log(LogLevel.Warn, "StartSend", e);
                 DoError();
             }
         }
@@ -251,7 +252,7 @@ namespace NetChannel
             }
             catch (Exception e)
             {
-                Console.Write(e.ToString());
+                LogRecord.Log(LogLevel.Warn, "StartRecv", e);
                 DoError();
             }
         }

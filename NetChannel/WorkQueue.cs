@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Logs;
+using System;
 using System.Collections.Concurrent;
 using System.Threading;
 
@@ -146,7 +147,7 @@ namespace NetChannel
             }
             catch(Exception e)
             {
-                Console.Write(e.ToString());
+                LogRecord.Log(LogLevel.Warn, "DoSend", e);
             }
         }
 

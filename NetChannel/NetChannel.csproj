@@ -4,4 +4,10 @@
     <TargetFramework>netstandard2.0</TargetFramework>
   </PropertyGroup>
 
+  <ItemGroup>
+    <Reference Include="Logs">
+      <HintPath>..\Logs\bin\Debug\netstandard2.0\Logs.dll</HintPath>
+    </Reference>
+  </ItemGroup>
+
 </Project>
