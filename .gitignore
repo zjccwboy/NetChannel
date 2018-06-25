@@ -57,3 +57,5 @@
 /Common/obj/Common.csproj.nuget.cache
 /Common/obj/Common.csproj.nuget.g.props
 /Common/obj/Common.csproj.nuget.g.targets
+/Common/obj/project.assets.json
+/Common/obj
