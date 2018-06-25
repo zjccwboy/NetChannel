@@ -17,7 +17,7 @@ namespace Serialize
             return json;
         }
 
-        public static object ToObject(this string json)
+        public static object ToObj(this string json)
         {
             var obj = JsonConvert.DeserializeObject(json, settings);
             return obj;
@@ -29,7 +29,7 @@ namespace Serialize
             return json;
         }
 
-        public static T ToObject<T>(this string json)
+        public static T ToObj<T>(this string json)
         {
             var obj = JsonConvert.DeserializeObject<T>(json, settings);
             return obj;
