@@ -1,5 +1,6 @@
 ﻿using System;
 using System.Net;
+using Common;
 
 namespace NetChannel
 {
@@ -42,6 +43,16 @@ namespace NetChannel
         /// 数据包
         /// </summary>
         public byte[] Data;
+
+        public T GetData<T>() where T : class, new()
+        {
+            return Data.ConvertToObject<T>();
+        }
+
+        public void SetData<T>(T data) where T:class, new()
+        {
+            Data = data.ConvertToBytes();
+        }
     }
 
     /// <summary>
