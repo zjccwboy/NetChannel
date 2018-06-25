@@ -67,12 +67,12 @@ namespace MergeClient
                                 if (count == sendCount)
                                 {
                                     //Console.WriteLine($"{stopwatch.ElapsedMilliseconds}毫秒钟响应请求:{count}/条");
-                                    LogRecord.Log(LogLevel.Info, "接收数据包", $"{stopwatch.ElapsedMilliseconds}毫秒钟响应请求:{count}/条");
+                                    LogRecord.Log(LogLevel.Notice, "接收数据包", $"{stopwatch.ElapsedMilliseconds}毫秒钟响应请求:{count}/条");
                                 }
                                 if(count > sendCount)
                                 {
                                     //Console.WriteLine($"接收到数据包:{count}个与发送数据包:{sendCount}个不一致...");
-                                    LogRecord.Log(LogLevel.Info, "接收数据包", $"接收到数据包:{count}个与发送数据包:{sendCount}个不一致...");
+                                    LogRecord.Log(LogLevel.Notice, "接收数据包", $"接收到数据包:{count}个与发送数据包:{sendCount}个不一致...");
                                 }
                             });
                         }

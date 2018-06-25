@@ -14,9 +14,13 @@ namespace Logs
         /// </summary>
         Debug,
         /// <summary>
-        /// 信息日志，记录业务信息日志
+        /// 信息日志
         /// </summary>
         Info,
+        /// <summary>
+        /// 分析日志
+        /// </summary>
+        Notice,
         /// <summary>
         /// 警告日志
         /// </summary>
