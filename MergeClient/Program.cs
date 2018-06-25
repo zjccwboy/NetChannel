@@ -67,7 +67,7 @@ namespace MergeClient
                                 if (count == sendCount)
                                 {
                                     //Console.WriteLine($"{stopwatch.ElapsedMilliseconds}毫秒钟响应请求:{count}/条");
-                                    LogRecord.Log(LogLevel.Notice, "接收数据包", $"{stopwatch.ElapsedMilliseconds}毫秒钟响应请求:{count}/条");
+                                    LogRecord.Log(LogLevel.Error, "接收数据包", $"{stopwatch.ElapsedMilliseconds}毫秒钟响应请求:{count}/条");
                                 }
                                 if(count > sendCount)
                                 {
