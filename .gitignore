@@ -344,3 +344,5 @@
 /packages/Newtonsoft.Json.11.0.2/lib/portable-net45+win8+wp8+wpa81/Newtonsoft.Json.dll
 /packages/Newtonsoft.Json.11.0.2/lib/portable-net45+win8+wp8+wpa81/Newtonsoft.Json.xml
 /TestDataConvert/obj/Debug/*.cache
+/kcp4sharp/.vs/kcp4sharp/v15/Server/sqlite3/db.lock
+/kcp4sharp/.vs/kcp4sharp/v15/Server/sqlite3/storage.ide

@@ -40,6 +40,11 @@ namespace NetChannel
         public bool IsEncrypt;
 
         /// <summary>
+        /// Kcp包协议
+        /// </summary>
+        internal byte KcpProtocal;
+
+        /// <summary>
         /// 数据包
         /// </summary>
         public byte[] Data;
@@ -89,6 +94,7 @@ namespace NetChannel
         private bool isCompress;
         private bool isHeartbeat;
         private bool isEncrypt;
+        private byte kcpProtocal;
 
         private int readLength = 0;
         private int packetSize = 0;
@@ -235,6 +241,7 @@ namespace NetChannel
             isHeartbeat = Convert.ToBoolean(flagByte >> 1 & 1);
             isCompress = Convert.ToBoolean(flagByte >> 2 & 1);
             isEncrypt = Convert.ToBoolean(flagByte >> 3 & 1);
+            kcpProtocal = (byte)(flagByte >> 3 & 24);
             headSize = isRpc ? HeadMaxSize : HeadMinSize;
         }
 
@@ -245,6 +252,7 @@ namespace NetChannel
             isEncrypt = false;
             isCompress = false;
             isHeartbeat = false;
+            kcpProtocal = 0;
             readLength = 0;
             packetSize = 0;
             headSize = 0;
@@ -272,6 +280,7 @@ namespace NetChannel
                         IsRpc = isRpc,
                         IsCompress = isCompress,
                         IsHeartbeat = isHeartbeat,
+                        KcpProtocal = kcpProtocal,
                         Data = bodyBytes,
                     };
                     Flush();
@@ -279,6 +288,11 @@ namespace NetChannel
                 }
             }
             return new Packet();
+        }
+
+        public void WriteBuffer(byte[] bytes, int offset, int length)
+        {
+            Buffer.Write(bytes, offset, length);
         }
 
         public void WriteBuffer(Packet packet)
@@ -314,6 +328,10 @@ namespace NetChannel
             if (packet.IsEncrypt)
             {
                 flagBytes[0] |= 1 << 3;
+            }
+            if(packet.KcpProtocal > 0)
+            {
+                flagBytes[0] |= (byte)(packet.KcpProtocal << 5);
             }
             Buffer.Write(flagBytes);
             if (packet.IsRpc)

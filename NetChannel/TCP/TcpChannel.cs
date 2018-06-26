@@ -19,16 +19,6 @@ namespace NetChannel
         public TcpClient Client;
 
         /// <summary>
-        /// RPC字典
-        /// </summary>
-        private ConcurrentDictionary<int, Action<Packet>> rpcDictionarys = new ConcurrentDictionary<int, Action<Packet>>();
-
-        /// <summary>
-        /// 同步多线程发送队列
-        /// </summary>
-        private SemaphoreSlim sendSemaphore = new SemaphoreSlim(1);
-
-        /// <summary>
         /// 构造函数
         /// </summary>
         /// <param name="endPoint">Ip/端口</param>
@@ -102,7 +92,7 @@ namespace NetChannel
             try
             {
                 var netStream = Client.GetStream();
-                await sendSemaphore.WaitAsync();
+                await SendSemaphore.WaitAsync();
                 SendParser.WriteBuffer(packet);
                 if (!netStream.CanWrite)
                 {
@@ -122,7 +112,7 @@ namespace NetChannel
             }
             finally
             {
-                sendSemaphore.Release();
+                SendSemaphore.Release();
             }
         }
 
@@ -186,7 +176,7 @@ namespace NetChannel
         /// <returns></returns>
         public override void AddRequest(Packet packet, Action<Packet> recvAction)
         {
-            rpcDictionarys.TryAdd(packet.RpcId, recvAction);
+            RpcDictionarys.TryAdd(packet.RpcId, recvAction);
         }
 
         /// <summary>
@@ -228,7 +218,7 @@ namespace NetChannel
                         {
                             if (packet.IsRpc)
                             {
-                                if (rpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
+                                if (RpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
                                 {
                                     //执行RPC请求回调
                                     action(packet);

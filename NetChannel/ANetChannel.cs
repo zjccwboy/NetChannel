@@ -1,4 +1,5 @@
 ﻿using System;
+using System.Collections.Concurrent;
 using System.Net;
 using System.Threading;
 using System.Threading.Tasks;
@@ -38,6 +39,17 @@ namespace NetChannel
                 return rpcId;
             }
         }
+
+        /// <summary>
+        /// RPC字典
+        /// </summary>
+        protected readonly ConcurrentDictionary<int, Action<Packet>> RpcDictionarys = new ConcurrentDictionary<int, Action<Packet>>();
+
+        /// <summary>
+        /// 同步多线程发送队列
+        /// </summary>
+        protected readonly SemaphoreSlim sendSemaphore = new SemaphoreSlim(1);
+
         /// <summary>
         /// 远程IP端口
         /// </summary>
