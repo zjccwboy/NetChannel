@@ -346,3 +346,5 @@
 /TestDataConvert/obj/Debug/*.cache
 /kcp4sharp/.vs/kcp4sharp/v15/Server/sqlite3/db.lock
 /kcp4sharp/.vs/kcp4sharp/v15/Server/sqlite3/storage.ide
+/NetChannel/bin
+/NetChannel/obj
