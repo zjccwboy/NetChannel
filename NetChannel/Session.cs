@@ -19,7 +19,7 @@ namespace NetChannel
         private ANetService netService;
         private IPEndPoint endPoint;
         private ANetChannel currentChannel;
-        public const int HeartbeatTime = 8000;
+        public const int HeartbeatTime = 1000 * 20;
         private DateTime LastCheckTime;
         private SessionType sessionType;
 
@@ -164,7 +164,7 @@ namespace NetChannel
                 foreach(var channel in channels)
                 {
                     var timeSpan = now - channel.LastRecvHeartbeat;
-                    if (timeSpan.TotalMilliseconds > HeartbeatTime * 4)
+                    if (timeSpan.TotalMilliseconds > HeartbeatTime)
                     {
                         LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"客户端:{channel.RemoteEndPoint}连接超时，心跳检测断开，心跳时长{timeSpan.TotalMilliseconds}...");
                         channel.DisConnect();

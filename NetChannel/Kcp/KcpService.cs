@@ -1,6 +1,8 @@
-﻿using System;
+﻿using Common;
+using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
 
@@ -9,6 +11,7 @@ namespace NetChannel
     public class KcpService : ANetService
     {
         private IPEndPoint endPoint;
+        private UdpClient udpClient;
 
         public KcpService(IPEndPoint endPoint, Session session) : base(session)
         {
@@ -25,14 +28,33 @@ namespace NetChannel
             }
         }
 
-        public override Task AcceptAsync()
+        public override async Task AcceptAsync()
         {
-            throw new NotImplementedException();
+            udpClient = udpClient ?? new UdpClient(this.endPoint);
+            while (true)
+            {
+                UdpReceiveResult recvResult;
+                try
+                {
+                    recvResult = await this.udpClient.ReceiveAsync();
+                }
+                catch(Exception e)
+                {
+                    LogRecord.Log(LogLevel.Warn, "DoAccept", e);
+                }
+            }
         }
 
-        public override Task<ANetChannel> ConnectAsync()
+        public override async Task<ANetChannel> ConnectAsync()
         {
-            throw new NotImplementedException();
+            udpClient = udpClient ?? new UdpClient(new IPEndPoint(IPAddress.Any, 0));
+            var channel = new KcpChannel(this.endPoint, udpClient);
+            var isConnected = await channel.StartConnecting();
+            if (!isConnected)
+            {
+                await channel.ReConnecting();
+            }
+            return channel;
         }
     }
 }

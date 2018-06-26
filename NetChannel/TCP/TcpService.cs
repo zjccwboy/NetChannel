@@ -49,7 +49,7 @@ namespace NetChannel
                     var channel = new TcpChannel(endPoint);
                     channel.RemoteEndPoint = client.Client.RemoteEndPoint;
                     channel.LocalEndPoint = client.Client.LocalEndPoint;
-                    channel.Client = client;
+                    channel.SocketClient = client;
                     channel.OnConnect = DoAccept;
                     channel.OnConnect?.Invoke(channel);
                 }
@@ -71,117 +71,5 @@ namespace NetChannel
             }
             return channel;
         }
-
-
-        private volatile bool reConnectIsStart = false;
-        private async Task ReConnecting(ANetChannel channel)
-        {
-            if (reConnectIsStart)
-            {
-                return;
-            }
-            reConnectIsStart = true;
-            if (channel.Connected)
-            {
-                reConnectIsStart = false;
-                return;
-            }
-            LogRecord.Log(LogLevel.Info, "ReConnecting", "重新连接...");
-            var isConnected = await channel.ReConnecting();
-            if (isConnected)
-            {
-                reConnectIsStart = false;
-                return;
-            }
-            await Task.Delay(3000).ContinueWith(async (t) =>
-            {
-                reConnectIsStart = false;
-                if (!channel.Connected)
-                {
-                    await ReConnecting(channel);
-                }
-            });
-        }
-
-        private void AddChannel(ANetChannel channel)
-        {
-            Channels.TryAdd(channel.Id, channel);
-        }
-
-        private void AddHandler(ANetChannel channel)
-        {
-            if (!Handlers.ContainsKey(channel.Id))
-            {
-                var handlers = MessageHandlerFactory.CreateHandlers(channel, this);
-                Handlers[channel.Id] = handlers;
-            }
-        }
-
-        private void DoAccept(ANetChannel channel)
-        {
-            try
-            {
-                channel.OnDisConnect = DoDisConnectOnServer;
-                channel.Connected = true;
-                AddChannel(channel);
-                AddHandler(channel);
-                channel.StartRecv();
-                LogRecord.Log(LogLevel.Info, "DoAccept", $"接受客户端:{channel.RemoteEndPoint}连接成功...");
-            }
-            catch(Exception e)
-            {
-                Console.WriteLine(e);
-            }
-        }
-
-        private void DoConnect(ANetChannel channel)
-        {
-            try
-            {
-                channel.OnDisConnect = DoDisConnectOnClient;
-                channel.Connected = true;
-                AddChannel(channel);
-                AddHandler(channel);
-                channel.StartRecv();
-                LogRecord.Log(LogLevel.Info, "DoAccept", $"连接服务端:{channel.RemoteEndPoint}成功...");
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-            }
-        }
-
-        private void DoDisConnectOnServer(ANetChannel channel)
-        {
-            try
-            {
-                if(Channels.TryRemove(channel.Id, out ANetChannel valu))
-                {
-                    Handlers.TryRemove(channel.Id, out IEnumerable<IMessageHandler> handler);
-                    LogRecord.Log(LogLevel.Info, "DoAccept", $"客户端:{channel.RemoteEndPoint}连接断开...");
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-            }
-        }
-
-        private async void DoDisConnectOnClient(ANetChannel channel)
-        {
-            try
-            {
-                if(Channels.TryRemove(channel.Id, out ANetChannel valu))
-                {
-                    LogRecord.Log(LogLevel.Info, "DoAccept", $"与服务端{channel.RemoteEndPoint}连接断开...");
-                    await ReConnecting(channel);
-                }
-            }
-            catch (Exception e)
-            {
-                Console.WriteLine(e);
-            }
-        }
-
-    }
+     }
 }

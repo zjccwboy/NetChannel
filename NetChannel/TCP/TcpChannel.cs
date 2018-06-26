@@ -14,9 +14,9 @@ namespace NetChannel
     public class TcpChannel : ANetChannel
     {
         /// <summary>
-        /// TCP Socket Client
+        /// TCP Socket SocketClient
         /// </summary>
-        public TcpClient Client;
+        public TcpClient SocketClient;
 
         /// <summary>
         /// 发送包解析器
@@ -42,12 +42,12 @@ namespace NetChannel
         {
             try
             {
-                Client = Client ?? new TcpClient();
-                Client.NoDelay = true;
-                await Client.ConnectAsync(DefaultEndPoint.Address, DefaultEndPoint.Port);
+                SocketClient = SocketClient ?? new TcpClient();
+                SocketClient.NoDelay = true;
+                await SocketClient.ConnectAsync(DefaultEndPoint.Address, DefaultEndPoint.Port);
                 Connected = true;
                 RemoteEndPoint = DefaultEndPoint;
-                LocalEndPoint = Client.Client.LocalEndPoint;
+                LocalEndPoint = SocketClient.Client.LocalEndPoint;
                 OnConnect?.Invoke(this);
                 return Connected;
             }
@@ -65,7 +65,7 @@ namespace NetChannel
         public override async Task<bool> ReConnecting()
         {
             DisConnect();
-            Client = new TcpClient();
+            SocketClient = new TcpClient();
             Connected = false;
             return await StartConnecting();
         }
@@ -78,7 +78,7 @@ namespace NetChannel
         {
             try
             {
-                return !((Client.Client.Poll(1000, SelectMode.SelectRead) && (Client.Client.Available == 0)));                
+                return !((SocketClient.Client.Poll(1000, SelectMode.SelectRead) && (SocketClient.Client.Available == 0)));                
             }
             catch (Exception e)
             {
@@ -96,7 +96,7 @@ namespace NetChannel
         {
             try
             {
-                var netStream = Client.GetStream();
+                var netStream = SocketClient.GetStream();
                 await SendSemaphore.WaitAsync();
                 SendParser.WriteBuffer(packet);
                 if (!netStream.CanWrite)
@@ -138,7 +138,7 @@ namespace NetChannel
         {
             try
             {
-                if (!Client.Connected)
+                if (!SocketClient.Connected)
                 {
                     return;
                 }
@@ -149,7 +149,7 @@ namespace NetChannel
                 }
 
                 LastSendHeartbeat = DateTime.Now;
-                var netStream = Client.GetStream();
+                var netStream = SocketClient.GetStream();
 
                 if (netStream == null)
                 {
@@ -193,7 +193,7 @@ namespace NetChannel
             {
                 while (true)
                 {
-                    var netStream = Client.GetStream();
+                    var netStream = SocketClient.GetStream();
                     if (netStream == null)
                     {
                         return;
@@ -264,7 +264,7 @@ namespace NetChannel
             {
                 Connected = false;
                 OnDisConnect?.Invoke(this);
-                var netStream = Client.GetStream();
+                var netStream = SocketClient.GetStream();
                 netStream.Close();
                 netStream.Dispose();
             }
@@ -272,8 +272,8 @@ namespace NetChannel
 
             try
             {
-                Client.Close();
-                Client.Dispose();
+                SocketClient.Close();
+                SocketClient.Dispose();
             }
             catch { }
         }

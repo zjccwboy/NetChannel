@@ -28,7 +28,7 @@ namespace NetChannel
     public class KcpChannel : ANetChannel
     {
         public int ConnectSN;
-        public UdpClient UdpClient;
+        public UdpClient SocketClient;
         public uint remoteConn;
         private readonly Kcp kcp;
         private readonly byte[] cacheBytes = new byte[1400];
@@ -36,28 +36,24 @@ namespace NetChannel
 
         private static int synPacketSize = PacketParser.HeadMinSize;
         private static int ackPacketSize = PacketParser.HeadMinSize + sizeof(int);
-        private static int finPacketSize = PacketParser.HeadMinSize + sizeof(int);        
+        private static int finPacketSize = PacketParser.HeadMinSize + sizeof(int);
 
         /// <summary>
         /// 构造函数
         /// </summary>
         /// <param name="endPoint">Ip/端口</param>
-        public KcpChannel(IPEndPoint endPoint) : base()
+        /// <param name="udpClient">Ip/端口</param>
+        public KcpChannel(IPEndPoint endPoint, UdpClient udpClient) : base()
         {
             this.DefaultEndPoint = endPoint;
-
-            uint IOC_IN = 0x80000000;
-            uint IOC_VENDOR = 0x18000000;
-            uint SIO_UDP_CONNRESET = IOC_IN | IOC_VENDOR | 12;
-            UdpClient.Client.IOControl((int)SIO_UDP_CONNRESET, new[] { Convert.ToByte(false) }, null);
+            SocketClient = udpClient;
 
             RecvParser = new PacketParser();
-
             this.kcp = new Kcp(this.remoteConn, this.Output);
             kcp.SetMtu(512);
             kcp.NoDelay(1, 10, 2, 1);  //fast
         }
-        
+
 
         public override void AddRequest(Packet packet, Action<Packet> recvAction)
         {
@@ -69,9 +65,11 @@ namespace NetChannel
             return Connected;
         }
 
-        public override Task<bool> ReConnecting()
+        public override async Task<bool> ReConnecting()
         {
-            throw new NotImplementedException();
+            DisConnect();
+            Connected = false;
+            return await StartConnecting();
         }
 
         public override Task SendAsync(Packet packet)
@@ -85,9 +83,13 @@ namespace NetChannel
         /// <returns></returns>
         public override async Task<bool> StartConnecting()
         {
-
             try
             {
+                uint IOC_IN = 0x80000000;
+                uint IOC_VENDOR = 0x18000000;
+                uint SIO_UDP_CONNRESET = IOC_IN | IOC_VENDOR | 12;
+                SocketClient.Client.IOControl((int)SIO_UDP_CONNRESET, new[] { Convert.ToByte(false) }, null);
+
                 //发送SYN包
                 var synPacket = new Packet
                 {
@@ -97,7 +99,7 @@ namespace NetChannel
 
                 //接收服务端ACK包与SN
                 UdpReceiveResult receiveResult;
-                receiveResult = await this.UdpClient.ReceiveAsync();
+                receiveResult = await SocketClient.ReceiveAsync();
                 RecvParser.WriteBuffer(receiveResult.Buffer, 0, ackPacketSize);
                 RecvParser.Buffer.UpdateWrite(ackPacketSize);
                 var ackPacket = RecvParser.ReadBuffer();
@@ -107,16 +109,16 @@ namespace NetChannel
                 }
 
                 //完成三次握手
-                if(ackPacket.KcpProtocal == KcpNetProtocal.ACK)
+                if (ackPacket.KcpProtocal == KcpNetProtocal.ACK)
                 {
                     //服务端无应答，连接失败
-                    if(ackPacket.Data == null)
+                    if (ackPacket.Data == null)
                     {
                         return false;
                     }
 
                     ConnectSN = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(ackPacket.Data, 0));
-                    if(ConnectSN == 0)
+                    if (ConnectSN == 0)
                     {
                         return false;
                     }
@@ -142,28 +144,29 @@ namespace NetChannel
 
         private void Send(Packet packet)
         {
-            var bytes = GetPacketBytes(packet);
+            var bytes = PacketParser.GetPacketBytes(packet);
             SendToKcp(bytes);
         }
 
         private void SendToKcp(List<byte[]> buffers)
         {
-            foreach(var buffer in buffers)
+            foreach (var buffer in buffers)
             {
                 kcp.Send(buffer);
             }
         }
 
-        public override void StartRecv()
+        public override async void StartRecv()
         {
             try
             {
                 while (true)
                 {
-
+                    UdpReceiveResult receiveResult;
+                    receiveResult = await SocketClient.ReceiveAsync();
                 }
             }
-            catch(Exception e)
+            catch (Exception e)
             {
                 LogRecord.Log(LogLevel.Warn, "StartConnecting", e);
             }
@@ -187,70 +190,11 @@ namespace NetChannel
                 OnDisConnect?.Invoke(this);
             }
             catch { }
-
-            try
-            {
-
-            }
-            catch { }
         }
 
         private void Output(byte[] bytes, int count)
         {
-            this.UdpClient.Send(bytes, count, this.DefaultEndPoint);
-        }
-
-        public List<byte[]> GetPacketBytes(Packet packet)
-        {
-            var bytes = new List<byte[]>();
-            var bodySize = 0;
-            if (packet.Data != null)
-            {
-                bodySize = packet.Data.Length;
-                if (packet.Data.Length > PacketParser.BodyMaxSize)
-                {
-                    throw new ArgumentOutOfRangeException();
-                }
-            }
-
-            int headSize = packet.IsRpc ? PacketParser.HeadMaxSize : PacketParser.HeadMinSize;
-            int packetSize = headSize + bodySize;
-            var sizeBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(Convert.ToInt16(packetSize)));
-            bytes.Add(sizeBytes);
-
-            var flagBytes = new byte[1];
-            if (packet.IsRpc)
-            {
-                flagBytes[0] |= 1;
-            }
-            if (packet.IsHeartbeat)
-            {
-                flagBytes[0] |= 1 << 1;
-            }
-            if (packet.IsCompress)
-            {
-                flagBytes[0] |= 1 << 2;
-            }
-            if (packet.IsEncrypt)
-            {
-                flagBytes[0] |= 1 << 3;
-            }
-            if (packet.KcpProtocal > 0)
-            {
-                flagBytes[0] |= (byte)(packet.KcpProtocal << 5);
-            }
-
-            bytes.Add(flagBytes);
-            if (packet.IsRpc)
-            {
-                var rpcBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(Convert.ToInt32(packet.RpcId)));
-                bytes.Add(rpcBytes);
-            }
-            if (packet.Data != null)
-            {
-                bytes.Add(packet.Data);
-            }
-            return bytes;
+            SocketClient.Send(bytes, count, this.DefaultEndPoint);
         }
 
     }
