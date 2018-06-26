@@ -8,11 +8,11 @@ namespace NetChannel
 {
     public class IdCreator
     {
-        private static long id;
-        public static long CreateId()
+        private static int id;
+        public static int CreateId()
         {
             Interlocked.Increment(ref id);
-            Interlocked.CompareExchange(ref id, 1, long.MaxValue);
+            Interlocked.CompareExchange(ref id, 1, int.MaxValue);
             return id;
         }
     }
@@ -22,7 +22,7 @@ namespace NetChannel
     /// </summary>
     public abstract class ANetChannel
     {
-        public long Id { get; private set; }
+        public int Id { get; private set; }
 
         public ANetChannel()
         {
@@ -66,10 +66,6 @@ namespace NetChannel
         /// 接收包解析器
         /// </summary>
         protected PacketParser RecvParser;
-        /// <summary>
-        /// 发送包解析器
-        /// </summary>
-        protected PacketParser SendParser;
         /// <summary>
         /// 最后接收心跳时间
         /// </summary>
