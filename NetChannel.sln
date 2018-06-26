@@ -27,6 +27,9 @@ EndProject
 Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Test", "Test", "{6D5FC32E-C41D-4977-942B-62F58A4C31B4}"
 EndProject
 Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "TestDataConvert", "TestDataConvert\TestDataConvert.csproj", "{F502BDC9-ADC9-4D9D-A689-03E224C86FE8}"
+	ProjectSection(ProjectDependencies) = postProject
+		{F196A6B2-A8FD-4771-B864-26B011462377} = {F196A6B2-A8FD-4771-B864-26B011462377}
+	EndProjectSection
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution

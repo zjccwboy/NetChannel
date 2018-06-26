@@ -142,11 +142,16 @@ namespace NetChannel
 
         private void Send(Packet packet)
         {
-            //while (SendParser.Buffer.DataSize > 0)
-            //{
-            //    this.UdpClient.Send(SendParser.Buffer.First, SendParser.Buffer.FirstOffset, DefaultEndPoint);
-            //    SendParser.Buffer.UpdateRead(SendParser.Buffer.FirstCount);
-            //}
+            var bytes = GetPacketBytes(packet);
+            SendToKcp(bytes);
+        }
+
+        private void SendToKcp(List<byte[]> buffers)
+        {
+            foreach(var buffer in buffers)
+            {
+                kcp.Send(buffer);
+            }
         }
 
         public override void StartRecv()
