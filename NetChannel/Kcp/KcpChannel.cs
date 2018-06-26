@@ -16,8 +16,8 @@ namespace NetChannel
 
     public class KcpChannel : ANetChannel
     {
-        private UdpClient udpClient;
-        private Kcp kcp;
+        private readonly UdpClient udpClient;
+        private readonly Kcp kcp;
         public uint remoteConn;
         private readonly byte[] cacheBytes = new byte[1400];
 
@@ -28,6 +28,13 @@ namespace NetChannel
         public KcpChannel(IPEndPoint endPoint) : base()
         {
             this.DefaultEndPoint = endPoint;
+
+            udpClient = new UdpClient();
+            uint IOC_IN = 0x80000000;
+            uint IOC_VENDOR = 0x18000000;
+            uint SIO_UDP_CONNRESET = IOC_IN | IOC_VENDOR | 12;
+            udpClient.Client.IOControl((int)SIO_UDP_CONNRESET, new[] { Convert.ToByte(false) }, null);
+
             RecvParser = new PacketParser();
             SendParser = new PacketParser();
 
@@ -59,12 +66,6 @@ namespace NetChannel
 
         public override Task<bool> StartConnecting()
         {
-            udpClient = udpClient ?? new UdpClient();
-            uint IOC_IN = 0x80000000;
-            uint IOC_VENDOR = 0x18000000;
-            uint SIO_UDP_CONNRESET = IOC_IN | IOC_VENDOR | 12;
-            udpClient.Client.IOControl((int)SIO_UDP_CONNRESET, new[] { Convert.ToByte(false) }, null);
-
             var packet = new Packet
             {
                 KcpProtocal = KcpNetProtocal.SYN,

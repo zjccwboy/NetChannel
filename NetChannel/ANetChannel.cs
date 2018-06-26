@@ -48,7 +48,7 @@ namespace NetChannel
         /// <summary>
         /// 同步多线程发送队列
         /// </summary>
-        protected readonly SemaphoreSlim sendSemaphore = new SemaphoreSlim(1);
+        protected readonly SemaphoreSlim SendSemaphore = new SemaphoreSlim(1);
 
         /// <summary>
         /// 远程IP端口
