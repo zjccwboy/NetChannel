@@ -195,6 +195,11 @@ namespace NetChannel
                         break;
                     }
 
+                    if (!netService.Channels.ContainsKey(packet.KcpConnectSN))
+                    {
+                        HandleACK(packet);
+                    }
+
                     if (!packet.IsHeartbeat)
                     {
                         if (packet.IsRpc)
@@ -222,6 +227,10 @@ namespace NetChannel
         {
             //应答客户端SYN连接请求
             packet.KcpConnectSN = KcpConnectSN.CreateSN();
+            while (!netService.Channels.ContainsKey(packet.KcpConnectSN))
+            {
+                packet.KcpConnectSN = KcpConnectSN.CreateSN();
+            }
             packet.KcpProtocal = KcpNetProtocal.ACK;
             var bytes = PacketParser.GetPacketBytes(packet);
             SendToKcp(bytes);
