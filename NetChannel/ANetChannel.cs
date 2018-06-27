@@ -20,7 +20,7 @@ namespace NetChannel
     public class KcpConnectSN
     {
         private static int id;
-        public static int CreateId()
+        public static int CreateSN()
         {
             Interlocked.Increment(ref id);
             Interlocked.CompareExchange(ref id, 1, int.MaxValue);
@@ -124,12 +124,6 @@ namespace NetChannel
         /// 断开连接
         /// </summary>
         public abstract void DisConnect();
-        /// <summary>
-        /// 发送数据异步
-        /// </summary>
-        /// <param name="packet"></param>
-        /// <returns></returns>
-        public abstract Task SendAsync(Packet packet);
         /// <summary>
         /// 插入请求
         /// </summary>

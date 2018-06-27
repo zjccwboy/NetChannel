@@ -101,40 +101,6 @@ namespace NetChannel
         }
 
         /// <summary>
-        /// 异步发送
-        /// </summary>
-        /// <param name="packet"></param>
-        /// <returns></returns>
-        public override async Task SendAsync(Packet packet)
-        {
-            try
-            {
-                var netStream = socketClient.GetStream();
-                await SendSemaphore.WaitAsync();
-                SendParser.WriteBuffer(packet);
-                if (!netStream.CanWrite)
-                {
-                    return;
-                }
-                LastSendHeartbeat = DateTime.Now;
-                while (SendParser.Buffer.DataSize > 0)
-                {
-                    await netStream.WriteAsync(SendParser.Buffer.First, SendParser.Buffer.FirstOffset, SendParser.Buffer.FirstCount);
-                    SendParser.Buffer.UpdateRead(SendParser.Buffer.FirstCount);
-                }
-            }
-            catch (Exception e)
-            {
-                LogRecord.Log(LogLevel.Warn, "SendAsync", e);
-                DoError();
-            }
-            finally
-            {
-                SendSemaphore.Release();
-            }
-        }
-
-        /// <summary>
         /// 写入发送包到缓冲区队列(合并发送)
         /// </summary>
         /// <param name="packet"></param>

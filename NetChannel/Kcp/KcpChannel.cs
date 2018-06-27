@@ -71,11 +71,6 @@ namespace NetChannel
             return await StartConnecting();
         }
 
-        public override Task SendAsync(Packet packet)
-        {
-            throw new NotImplementedException();
-        }
-
         /// <summary>
         /// 模拟TCP三次握手连接服务端
         /// </summary>
