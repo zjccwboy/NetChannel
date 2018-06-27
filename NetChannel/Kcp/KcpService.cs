@@ -15,7 +15,7 @@ namespace NetChannel
         private KcpChannel acceptChannel;
 
         /// <summary>
-        /// 
+        /// 构造函数
         /// </summary>
         /// <param name="endPoint"></param>
         /// <param name="session"></param>

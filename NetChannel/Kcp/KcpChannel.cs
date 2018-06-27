@@ -31,6 +31,7 @@ namespace NetChannel
         private UdpClient socketClient;
         public uint remoteConn;
         private readonly Kcp kcp;
+        private readonly byte[] cacheBytes = new byte[1400];
         private ConcurrentQueue<Packet> sendQueut = new ConcurrentQueue<Packet>();
 
         private static int synPacketSize = PacketParser.HeadMinSize;
@@ -142,7 +143,7 @@ namespace NetChannel
         {
             packet.IsKcpConnect = true;
             packet.KcpConnectSN = ConnectSN;
-            var bytes = PacketParser.GetPacketBytes(packet);
+            var bytes = RecvParser.GetPacketBytes(packet);
             SendToKcp(bytes);
         }
 
@@ -150,7 +151,10 @@ namespace NetChannel
         {
             foreach (var buffer in buffers)
             {
-                kcp.Send(buffer);
+                if(buffer != null)
+                {
+                    kcp.Send(buffer);
+                }
             }
         }
 
@@ -168,91 +172,74 @@ namespace NetChannel
                     LogRecord.Log(LogLevel.Warn, "StartRecv", e);
                     continue;
                 }
-                RecvParser.WriteBuffer(recvResult.Buffer, 0, recvResult.Buffer.Length);
-                RecvParser.Buffer.UpdateWrite(recvResult.Buffer.Length);
+
+                this.kcp.Input(recvResult.Buffer);
                 while (true)
                 {
-                    var packet = RecvParser.ReadBuffer();
-                    if (!packet.IsSuccess)
+                    int n = kcp.PeekSize();
+                    if (n == 0)
                     {
-                        break;
-                    }
-                    LastRecvHeartbeat = DateTime.Now;
-
-                    if (packet.KcpProtocal == KcpNetProtocal.SYN)
-                    {
-                        HandleSYN(packet);
-                        break;
-                    }
-                    else if (packet.KcpProtocal == KcpNetProtocal.ACK)
-                    {
-                        HandleACK(packet);
-                        break;
-                    }
-                    else if (packet.KcpProtocal == KcpNetProtocal.FIN)
-                    {
-                        HandleFIN(packet);
                         break;
                     }
 
-                    if (!netService.Channels.ContainsKey(packet.KcpConnectSN))
+                    int count = this.kcp.Recv(cacheBytes);
+                    if (count <= 0)
                     {
-                        HandleACK(packet);
+                        break;
                     }
 
-                    if (!packet.IsHeartbeat)
+                    RecvParser.WriteBuffer(cacheBytes, 0, count);
+                    RecvParser.Buffer.UpdateWrite(count);
+                    while (true)
                     {
-                        if (packet.IsRpc)
+                        var packet = RecvParser.ReadBuffer();
+                        if (!packet.IsSuccess)
                         {
-                            if (RpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
+                            break;
+                        }
+                        if (packet.KcpProtocal == KcpNetProtocal.SYN)
+                        {
+                            HandleSYN(packet);
+                            break;
+                        }
+                        else if (packet.KcpProtocal == KcpNetProtocal.ACK)
+                        {
+                            HandleACK(packet);
+                            break;
+                        }
+                        else if (packet.KcpProtocal == KcpNetProtocal.FIN)
+                        {
+                            HandleFIN(packet);
+                            break;
+                        }
+
+                        if (!netService.Channels.TryGetValue(packet.KcpConnectSN, out ANetChannel channel))
+                        {
+                            SendFIN();
+                            continue;
+                        }
+                        channel.LastRecvHeartbeat = DateTime.Now;
+                        if (!packet.IsHeartbeat)
+                        {
+                            if (packet.IsRpc)
                             {
-                                //执行RPC请求回调
-                                action(packet);
+                                if (RpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
+                                {
+                                    //执行RPC请求回调
+                                    action(packet);
+                                }
+                                else
+                                {
+                                    channel.OnReceive?.Invoke(packet);
+                                }
                             }
                             else
                             {
-                                OnReceive?.Invoke(packet);
+                                channel.OnReceive?.Invoke(packet);
                             }
-                        }
-                        else
-                        {
-                            OnReceive?.Invoke(packet);
                         }
                     }
                 }
-            }
-        }
-                
-        private void HandleSYN(Packet packet)
-        {
-            //应答客户端SYN连接请求
-            packet.KcpConnectSN = KcpConnectSN.CreateSN();
-            while (!netService.Channels.ContainsKey(packet.KcpConnectSN))
-            {
-                packet.KcpConnectSN = KcpConnectSN.CreateSN();
-            }
-            packet.KcpProtocal = KcpNetProtocal.ACK;
-            var bytes = PacketParser.GetPacketBytes(packet);
-            SendToKcp(bytes);
-        }
-
-        private void HandleACK(Packet packet)
-        {
-            var ipEndPoint = this.socketClient.Client.RemoteEndPoint as IPEndPoint;
-            var channel = new KcpChannel(ipEndPoint, this.socketClient, this.netService);
-            channel.RemoteEndPoint = this.socketClient.Client.RemoteEndPoint;
-            channel.LocalEndPoint = this.socketClient.Client.LocalEndPoint;
-            channel.ConnectSN = packet.KcpConnectSN;
-            channel.Id = ConnectSN;//KCP直接使用ConnectSN做ChannelId
-            OnConnect?.Invoke(channel);
-        }
-
-        private void HandleFIN(Packet packet)
-        {
-            if (Connected)
-            {
-                Connected = false;
-                OnDisConnect?.Invoke(this);
             }
         }
 
@@ -265,7 +252,7 @@ namespace NetChannel
                     Packet packet;
                     if(this.sendQueut.TryDequeue(out packet))
                     {
-                        var bytes = PacketParser.GetPacketBytes(packet);
+                        var bytes = RecvParser.GetPacketBytes(packet);
                         foreach(var d in bytes)
                         {
                             kcp.Send(d);
@@ -287,11 +274,7 @@ namespace NetChannel
             {
                 Connected = false;
                 //发送FIN包
-                var finPacket = new Packet
-                {
-                    KcpProtocal = KcpNetProtocal.FIN,
-                };
-                Send(finPacket);
+                SendFIN();
                 OnDisConnect?.Invoke(this);
             }
             catch { }
@@ -300,6 +283,49 @@ namespace NetChannel
         private void Output(byte[] bytes, int count)
         {
             socketClient.Send(bytes, count, this.DefaultEndPoint);
+        }
+
+        private void SendFIN()
+        {
+            var finPacket = new Packet
+            {
+                KcpProtocal = KcpNetProtocal.FIN,
+            };
+            var bytes = finPacket.GetHeadBytes();
+            socketClient.Client.Send(bytes);
+        }
+
+        private void HandleSYN(Packet packet)
+        {
+            //应答客户端SYN连接请求
+            packet.KcpConnectSN = KcpConnectSN.CreateSN();
+            while (!netService.Channels.ContainsKey(packet.KcpConnectSN))
+            {
+                packet.KcpConnectSN = KcpConnectSN.CreateSN();
+            }
+            packet.KcpProtocal = KcpNetProtocal.ACK;
+            var bytes = packet.GetHeadBytes();
+            socketClient.Client.Send(bytes);
+        }
+
+        private void HandleACK(Packet packet)
+        {
+            var ipEndPoint = this.socketClient.Client.RemoteEndPoint as IPEndPoint;
+            var channel = new KcpChannel(ipEndPoint, this.socketClient, this.netService);
+            channel.RemoteEndPoint = this.socketClient.Client.RemoteEndPoint;
+            channel.LocalEndPoint = this.socketClient.Client.LocalEndPoint;
+            channel.ConnectSN = packet.KcpConnectSN;
+            channel.Id = ConnectSN;//KCP直接使用ConnectSN做ChannelId
+            OnConnect?.Invoke(channel);
+        }
+
+        private void HandleFIN(Packet packet)
+        {
+            if (Connected)
+            {
+                Connected = false;
+                OnDisConnect?.Invoke(this);
+            }
         }
 
     }
