@@ -17,6 +17,17 @@ namespace NetChannel
         }
     }
 
+    public class KcpConnectId
+    {
+        private static int id;
+        public static int CreateId()
+        {
+            Interlocked.Increment(ref id);
+            Interlocked.CompareExchange(ref id, 1, int.MaxValue);
+            return id;
+        }
+    }
+
     /// <summary>
     /// 网络通道抽象类
     /// </summary>

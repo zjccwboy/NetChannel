@@ -164,12 +164,78 @@ namespace NetChannel
                 try
                 {
                     recvResult = await this.socketClient.ReceiveAsync();
+                    RecvParser.WriteBuffer(recvResult.Buffer, 0, recvResult.Buffer.Length);
+                    RecvParser.Buffer.UpdateWrite(recvResult.Buffer.Length);
+                    while (true)
+                    {
+                        var packet = RecvParser.ReadBuffer();
+                        if (!packet.IsSuccess)
+                        {
+                            break;
+                        }
+                        LastRecvHeartbeat = DateTime.Now;
+
+                        if (packet.KcpProtocal == KcpNetProtocal.SYN)
+                        {
+                            HandleSYN(packet);
+                            break;
+                        }
+                        else if(packet.KcpProtocal == KcpNetProtocal.ACK)
+                        {
+                            HandleACK(packet);
+                            break;
+                        }
+                        else if(packet.KcpProtocal == KcpNetProtocal.FIN)
+                        {
+                            HandleFIN(packet);
+                            break;
+                        }
+
+                        if (!packet.IsHeartbeat)
+                        {
+                            if (packet.IsRpc)
+                            {
+                                if (RpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
+                                {
+                                    //执行RPC请求回调
+                                    action(packet);
+                                }
+                                else
+                                {
+                                    OnReceive?.Invoke(packet);
+                                }
+                            }
+                            else
+                            {
+                                OnReceive?.Invoke(packet);
+                            }
+                        }
+                        else
+                        {
+                            //Console.WriteLine($"接收到客户端:{RemoteEndPoint}心跳包...");
+                        }
+                    }
                 }
                 catch (Exception e)
                 {
                     LogRecord.Log(LogLevel.Warn, "StartRecv", e);
                 }
             }
+        }
+
+        private void HandleSYN(Packet packet)
+        {
+
+        }
+
+        private void HandleACK(Packet packet)
+        {
+
+        }
+
+        private void HandleFIN(Packet packet)
+        {
+
         }
 
         public override Task StartSend()
