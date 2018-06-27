@@ -42,7 +42,8 @@ namespace NetChannel
         /// </summary>
         /// <param name="endPoint">Ip/端口</param>
         /// <param name="udpClient">Ip/端口</param>
-        public KcpChannel(IPEndPoint endPoint, UdpClient udpClient) : base()
+        /// <param name="netService">网络服务</param>
+        public KcpChannel(IPEndPoint endPoint, UdpClient udpClient, ANetService netService) : base(netService)
         {
             this.DefaultEndPoint = endPoint;
             socketClient = udpClient;
@@ -137,16 +138,6 @@ namespace NetChannel
             }
         }
 
-        private void TrySend(Packet packet)
-        {
-            if (Connected)
-            {
-                Send(packet);
-                return;
-            }
-            sendQueut.Enqueue(packet);
-        }
-
         private void Send(Packet packet)
         {
             packet.IsKcpConnect = true;
@@ -171,57 +162,58 @@ namespace NetChannel
                 try
                 {
                     recvResult = await this.socketClient.ReceiveAsync();
-                    RecvParser.WriteBuffer(recvResult.Buffer, 0, recvResult.Buffer.Length);
-                    RecvParser.Buffer.UpdateWrite(recvResult.Buffer.Length);
-                    while (true)
+                }
+                catch (Exception e)
+                {
+                    LogRecord.Log(LogLevel.Warn, "StartRecv", e);
+                    continue;
+                }
+                RecvParser.WriteBuffer(recvResult.Buffer, 0, recvResult.Buffer.Length);
+                RecvParser.Buffer.UpdateWrite(recvResult.Buffer.Length);
+                while (true)
+                {
+                    var packet = RecvParser.ReadBuffer();
+                    if (!packet.IsSuccess)
                     {
-                        var packet = RecvParser.ReadBuffer();
-                        if (!packet.IsSuccess)
-                        {
-                            break;
-                        }
-                        LastRecvHeartbeat = DateTime.Now;
+                        break;
+                    }
+                    LastRecvHeartbeat = DateTime.Now;
 
-                        if (packet.KcpProtocal == KcpNetProtocal.SYN)
-                        {
-                            HandleSYN(packet);
-                            break;
-                        }
-                        else if(packet.KcpProtocal == KcpNetProtocal.ACK)
-                        {
-                            HandleACK(packet);
-                            break;
-                        }
-                        else if(packet.KcpProtocal == KcpNetProtocal.FIN)
-                        {
-                            HandleFIN(packet);
-                            break;
-                        }
+                    if (packet.KcpProtocal == KcpNetProtocal.SYN)
+                    {
+                        HandleSYN(packet);
+                        break;
+                    }
+                    else if (packet.KcpProtocal == KcpNetProtocal.ACK)
+                    {
+                        HandleACK(packet);
+                        break;
+                    }
+                    else if (packet.KcpProtocal == KcpNetProtocal.FIN)
+                    {
+                        HandleFIN(packet);
+                        break;
+                    }
 
-                        if (!packet.IsHeartbeat)
+                    if (!packet.IsHeartbeat)
+                    {
+                        if (packet.IsRpc)
                         {
-                            if (packet.IsRpc)
+                            if (RpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
                             {
-                                if (RpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
-                                {
-                                    //执行RPC请求回调
-                                    action(packet);
-                                }
-                                else
-                                {
-                                    OnReceive?.Invoke(packet);
-                                }
+                                //执行RPC请求回调
+                                action(packet);
                             }
                             else
                             {
                                 OnReceive?.Invoke(packet);
                             }
                         }
+                        else
+                        {
+                            OnReceive?.Invoke(packet);
+                        }
                     }
-                }
-                catch (Exception e)
-                {
-                    LogRecord.Log(LogLevel.Warn, "StartRecv", e);
                 }
             }
         }
@@ -238,7 +230,7 @@ namespace NetChannel
         private void HandleACK(Packet packet)
         {
             var ipEndPoint = this.socketClient.Client.RemoteEndPoint as IPEndPoint;
-            var channel = new KcpChannel(ipEndPoint, this.socketClient);
+            var channel = new KcpChannel(ipEndPoint, this.socketClient, this.netService);
             channel.RemoteEndPoint = this.socketClient.Client.RemoteEndPoint;
             channel.LocalEndPoint = this.socketClient.Client.LocalEndPoint;
             channel.ConnectSN = packet.KcpConnectSN;

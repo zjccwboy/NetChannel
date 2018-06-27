@@ -14,6 +14,11 @@ namespace NetChannel
         private UdpClient udpClient;
         private KcpChannel acceptChannel;
 
+        /// <summary>
+        /// 
+        /// </summary>
+        /// <param name="endPoint"></param>
+        /// <param name="session"></param>
         public KcpService(IPEndPoint endPoint, Session session) : base(session)
         {
             sendQueue = new WorkQueue(session);
@@ -41,7 +46,7 @@ namespace NetChannel
             uint IOC_VENDOR = 0x18000000;
             uint SIO_UDP_CONNRESET = IOC_IN | IOC_VENDOR | 12;
             this.udpClient.Client.IOControl((int)SIO_UDP_CONNRESET, new[] { Convert.ToByte(false) }, null);
-            this.acceptChannel = new KcpChannel(this.endPoint, this.udpClient);
+            this.acceptChannel = new KcpChannel(this.endPoint, this.udpClient, this);
             this.acceptChannel.OnConnect = DoAccept;
             this.acceptChannel.StartRecv();
 
@@ -56,7 +61,7 @@ namespace NetChannel
                 channel.Connected = true;
                 AddChannel(channel);
                 AddHandler(channel);
-                channel.StartRecv();
+                //channel.StartRecv();
                 LogRecord.Log(LogLevel.Info, "DoAccept", $"接受客户端:{channel.RemoteEndPoint}连接成功...");
             }
             catch (Exception e)
@@ -68,7 +73,7 @@ namespace NetChannel
         public override async Task<ANetChannel> ConnectAsync()
         {
             udpClient = udpClient ?? new UdpClient(new IPEndPoint(IPAddress.Any, 0));
-            var channel = new KcpChannel(this.endPoint, udpClient);
+            var channel = new KcpChannel(this.endPoint, udpClient, this);
             var isConnected = await channel.StartConnecting();
             if (!isConnected)
             {

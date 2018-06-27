@@ -46,7 +46,7 @@ namespace NetChannel
                 try
                 {
                     var client = await tcpListener.AcceptTcpClientAsync();
-                    var channel = new TcpChannel(endPoint, client);
+                    var channel = new TcpChannel(endPoint, client, this);
                     channel.RemoteEndPoint = client.Client.RemoteEndPoint;
                     channel.LocalEndPoint = client.Client.LocalEndPoint;
                     channel.OnConnect = DoAccept;
@@ -77,7 +77,7 @@ namespace NetChannel
 
         public override async Task<ANetChannel> ConnectAsync()
         {
-            var channel = new TcpChannel(endPoint);
+            var channel = new TcpChannel(endPoint, this);
             channel.OnConnect = DoConnect;
             var isConnected = await channel.StartConnecting();
             if (!isConnected)

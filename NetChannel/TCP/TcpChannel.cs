@@ -27,7 +27,8 @@ namespace NetChannel
         /// 构造函数
         /// </summary>
         /// <param name="endPoint">Ip/端口</param>
-        public TcpChannel(IPEndPoint endPoint) : base()
+        /// <param name="netService">网络服务</param>
+        public TcpChannel(IPEndPoint endPoint, ANetService netService) : base(netService)
         {
             this.DefaultEndPoint = endPoint;
             RecvParser = new PacketParser();
@@ -39,7 +40,8 @@ namespace NetChannel
         /// </summary>
         /// <param name="endPoint">Ip/端口</param>
         /// <param name="tcpClient">Ip/端口</param>
-        public TcpChannel(IPEndPoint endPoint, TcpClient tcpClient) : base()
+        /// <param name="netService">网络服务</param>
+        public TcpChannel(IPEndPoint endPoint, TcpClient tcpClient, ANetService netService) : base(netService)
         {
             this.DefaultEndPoint = endPoint;
             RecvParser = new PacketParser();
