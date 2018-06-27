@@ -23,8 +23,9 @@ namespace MergeClient
 
         static async void TestNotice()
         {
-            var session = new Session();
-            await session.Connect(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8989));
+            var endPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8989);
+            var session = new Session(endPoint, ProtocalType.Tcp);
+            await session.Connect();
             Thread.Sleep(200);
             var send = new Packet { Data = BitConverter.GetBytes(999) };
             for(int i=0;i<10;i++)
@@ -35,8 +36,9 @@ namespace MergeClient
 
         static async void TestSubscription()
         {
-            var session = new Session();
-            var channel = await session.Connect(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8989));
+            var endPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8989);
+            var session = new Session(endPoint, ProtocalType.Tcp);
+            var channel = await session.Connect();
             var stopwatch = new Stopwatch();
             stopwatch.Start();
             var send = new Packet { Data = BitConverter.GetBytes(999) };

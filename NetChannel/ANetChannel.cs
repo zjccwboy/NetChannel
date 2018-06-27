@@ -33,7 +33,7 @@ namespace NetChannel
     /// </summary>
     public abstract class ANetChannel
     {
-        public int Id { get; private set; }
+        public int Id { get; protected set; }
 
         public ANetChannel()
         {

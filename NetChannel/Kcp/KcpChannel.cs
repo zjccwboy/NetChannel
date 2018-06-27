@@ -67,7 +67,6 @@ namespace NetChannel
         public override async Task<bool> ReConnecting()
         {
             DisConnect();
-            Connected = false;
             return await StartConnecting();
         }
 
@@ -243,6 +242,7 @@ namespace NetChannel
             channel.RemoteEndPoint = this.socketClient.Client.RemoteEndPoint;
             channel.LocalEndPoint = this.socketClient.Client.LocalEndPoint;
             channel.ConnectSN = packet.KcpConnectSN;
+            channel.Id = ConnectSN;//KCP直接使用ConnectSN做ChannelId
             OnConnect?.Invoke(channel);
         }
 
@@ -284,13 +284,13 @@ namespace NetChannel
         {
             try
             {
+                Connected = false;
                 //发送FIN包
                 var finPacket = new Packet
                 {
                     KcpProtocal = KcpNetProtocal.FIN,
                 };
                 Send(finPacket);
-                Connected = false;
                 OnDisConnect?.Invoke(this);
             }
             catch { }

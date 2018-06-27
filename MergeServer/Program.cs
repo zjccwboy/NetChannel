@@ -12,8 +12,9 @@ namespace MergeServer
     {
         static void Main(string[] args)
         {
-            var session = new Session();
-            session.Accept(new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8989));
+            var endPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8989);
+            var session = new Session(endPoint, ProtocalType.Tcp);
+            session.Accept();
             Console.Read();
         }
     }

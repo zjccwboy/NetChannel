@@ -14,24 +14,44 @@ namespace NetChannel
         Server
     }
 
+    public enum ProtocalType
+    {
+        Tcp,
+        Kcp,
+    }
+
     public class Session
     {
+        public const int HeartbeatTime = 1000 * 20;
+
         private ANetService netService;
         private IPEndPoint endPoint;
         private ANetChannel currentChannel;
-        public const int HeartbeatTime = 1000 * 20;
         private DateTime LastCheckTime;
         private SessionType sessionType;
+        private ProtocalType protocalType;
+
+        public Session(IPEndPoint endPoint, ProtocalType protocalType)
+        {
+            this.endPoint = endPoint;
+            this.protocalType = protocalType;
+        }
 
         /// <summary>
         /// 开始监听并接受客户端连接
         /// </summary>
         /// <param name="endPoint"></param>
-        public async void Accept(IPEndPoint endPoint)
+        public async void Accept()
         {
             sessionType = SessionType.Server;
-            this.endPoint = endPoint;
-            netService = new TcpService(endPoint, this);
+            if(protocalType == ProtocalType.Tcp)
+            {
+                netService = new TcpService(endPoint, this);
+            }
+            else if(protocalType == ProtocalType.Kcp)
+            {
+                netService = new KcpService(endPoint, this);
+            }
             netService.SendQueue.Start();
             await netService.AcceptAsync();
         }
@@ -41,11 +61,17 @@ namespace NetChannel
         /// </summary>
         /// <param name="endPoint"></param>
         /// <returns></returns>
-        public async Task<ANetChannel> Connect(IPEndPoint endPoint)
+        public async Task<ANetChannel> Connect()
         {
             sessionType = SessionType.Client;
-            this.endPoint = endPoint;
-            netService = new TcpService(endPoint, this);
+            if (protocalType == ProtocalType.Tcp)
+            {
+                netService = new TcpService(endPoint, this);
+            }
+            else if (protocalType == ProtocalType.Kcp)
+            {
+                netService = new KcpService(endPoint, this);
+            }
             netService.SendQueue.Start();
             currentChannel = await netService.ConnectAsync();
             return currentChannel;
