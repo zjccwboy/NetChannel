@@ -14,9 +14,9 @@ namespace NetChannel
     public class TcpChannel : ANetChannel
     {
         /// <summary>
-        /// TCP Socket SocketClient
+        /// TCP Socket socketClient
         /// </summary>
-        public TcpClient SocketClient;
+        private TcpClient socketClient;
 
         /// <summary>
         /// 发送包解析器
@@ -35,6 +35,19 @@ namespace NetChannel
         }
 
         /// <summary>
+        /// 构造函数
+        /// </summary>
+        /// <param name="endPoint">Ip/端口</param>
+        /// <param name="tcpClient">Ip/端口</param>
+        public TcpChannel(IPEndPoint endPoint, TcpClient tcpClient) : base()
+        {
+            this.DefaultEndPoint = endPoint;
+            RecvParser = new PacketParser();
+            SendParser = new PacketParser();
+            socketClient = tcpClient;
+        }
+
+        /// <summary>
         /// 开始连接
         /// </summary>
         /// <returns></returns>
@@ -42,12 +55,12 @@ namespace NetChannel
         {
             try
             {
-                SocketClient = SocketClient ?? new TcpClient();
-                SocketClient.NoDelay = true;
-                await SocketClient.ConnectAsync(DefaultEndPoint.Address, DefaultEndPoint.Port);
+                socketClient = socketClient ?? new TcpClient();
+                socketClient.NoDelay = true;
+                await socketClient.ConnectAsync(DefaultEndPoint.Address, DefaultEndPoint.Port);
                 Connected = true;
                 RemoteEndPoint = DefaultEndPoint;
-                LocalEndPoint = SocketClient.Client.LocalEndPoint;
+                LocalEndPoint = socketClient.Client.LocalEndPoint;
                 OnConnect?.Invoke(this);
                 return Connected;
             }
@@ -65,7 +78,7 @@ namespace NetChannel
         public override async Task<bool> ReConnecting()
         {
             DisConnect();
-            SocketClient = new TcpClient();
+            socketClient = new TcpClient();
             Connected = false;
             return await StartConnecting();
         }
@@ -78,7 +91,7 @@ namespace NetChannel
         {
             try
             {
-                return !((SocketClient.Client.Poll(1000, SelectMode.SelectRead) && (SocketClient.Client.Available == 0)));                
+                return !((socketClient.Client.Poll(1000, SelectMode.SelectRead) && (socketClient.Client.Available == 0)));                
             }
             catch (Exception e)
             {
@@ -96,7 +109,7 @@ namespace NetChannel
         {
             try
             {
-                var netStream = SocketClient.GetStream();
+                var netStream = socketClient.GetStream();
                 await SendSemaphore.WaitAsync();
                 SendParser.WriteBuffer(packet);
                 if (!netStream.CanWrite)
@@ -138,7 +151,7 @@ namespace NetChannel
         {
             try
             {
-                if (!SocketClient.Connected)
+                if (!socketClient.Connected)
                 {
                     return;
                 }
@@ -149,7 +162,7 @@ namespace NetChannel
                 }
 
                 LastSendHeartbeat = DateTime.Now;
-                var netStream = SocketClient.GetStream();
+                var netStream = socketClient.GetStream();
 
                 if (netStream == null)
                 {
@@ -193,7 +206,7 @@ namespace NetChannel
             {
                 while (true)
                 {
-                    var netStream = SocketClient.GetStream();
+                    var netStream = socketClient.GetStream();
                     if (netStream == null)
                     {
                         return;
@@ -264,7 +277,7 @@ namespace NetChannel
             {
                 Connected = false;
                 OnDisConnect?.Invoke(this);
-                var netStream = SocketClient.GetStream();
+                var netStream = socketClient.GetStream();
                 netStream.Close();
                 netStream.Dispose();
             }
@@ -272,8 +285,8 @@ namespace NetChannel
 
             try
             {
-                SocketClient.Close();
-                SocketClient.Dispose();
+                socketClient.Close();
+                socketClient.Dispose();
             }
             catch { }
         }

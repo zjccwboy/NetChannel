@@ -30,19 +30,18 @@ namespace NetChannel
 
         public override async Task AcceptAsync()
         {
-            udpClient = udpClient ?? new UdpClient(this.endPoint);
-            while (true)
+            if(udpClient != null)
             {
-                UdpReceiveResult recvResult;
-                try
-                {
-                    recvResult = await this.udpClient.ReceiveAsync();
-                }
-                catch(Exception e)
-                {
-                    LogRecord.Log(LogLevel.Warn, "DoAccept", e);
-                }
+                return;
             }
+
+            udpClient = new UdpClient(this.endPoint);
+            var channel = new KcpChannel(this.endPoint, udpClient);
+
+            channel.OnConnect = DoAccept;
+            channel.OnConnect?.Invoke(channel);
+
+            channel.StartRecv();
         }
 
         public override async Task<ANetChannel> ConnectAsync()

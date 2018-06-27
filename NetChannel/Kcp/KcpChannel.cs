@@ -21,14 +21,14 @@ namespace NetChannel
         public const byte ACK = 2;
         /// <summary>
         /// 断开连接请求
-        /// </summary>
+        /// </summary>socketClient
         public const byte FIN = 3;
     }
 
     public class KcpChannel : ANetChannel
     {
         public int ConnectSN;
-        public UdpClient SocketClient;
+        private UdpClient socketClient;
         public uint remoteConn;
         private readonly Kcp kcp;
         private readonly byte[] cacheBytes = new byte[1400];
@@ -46,7 +46,7 @@ namespace NetChannel
         public KcpChannel(IPEndPoint endPoint, UdpClient udpClient) : base()
         {
             this.DefaultEndPoint = endPoint;
-            SocketClient = udpClient;
+            socketClient = udpClient;
 
             RecvParser = new PacketParser();
             this.kcp = new Kcp(this.remoteConn, this.Output);
@@ -88,7 +88,7 @@ namespace NetChannel
                 uint IOC_IN = 0x80000000;
                 uint IOC_VENDOR = 0x18000000;
                 uint SIO_UDP_CONNRESET = IOC_IN | IOC_VENDOR | 12;
-                SocketClient.Client.IOControl((int)SIO_UDP_CONNRESET, new[] { Convert.ToByte(false) }, null);
+                socketClient.Client.IOControl((int)SIO_UDP_CONNRESET, new[] { Convert.ToByte(false) }, null);
 
                 //发送SYN包
                 var synPacket = new Packet
@@ -99,7 +99,7 @@ namespace NetChannel
 
                 //接收服务端ACK包与SN
                 UdpReceiveResult receiveResult;
-                receiveResult = await SocketClient.ReceiveAsync();
+                receiveResult = await socketClient.ReceiveAsync();
                 RecvParser.WriteBuffer(receiveResult.Buffer, 0, ackPacketSize);
                 RecvParser.Buffer.UpdateWrite(ackPacketSize);
                 var ackPacket = RecvParser.ReadBuffer();
@@ -158,28 +158,43 @@ namespace NetChannel
 
         public override async void StartRecv()
         {
-            try
+            while (true)
             {
-                while (true)
+                UdpReceiveResult recvResult;
+                try
                 {
-                    UdpReceiveResult receiveResult;
-                    receiveResult = await SocketClient.ReceiveAsync();
+                    recvResult = await this.socketClient.ReceiveAsync();
                 }
-            }
-            catch (Exception e)
-            {
-                LogRecord.Log(LogLevel.Warn, "StartConnecting", e);
+                catch (Exception e)
+                {
+                    LogRecord.Log(LogLevel.Warn, "StartRecv", e);
+                }
             }
         }
 
         public override Task StartSend()
         {
-            throw new NotImplementedException();
+            if (Connected)
+            {
+                while (!this.sendQueut.IsEmpty)
+                {
+                    Packet packet;
+                    if(this.sendQueut.TryDequeue(out packet))
+                    {
+                        var bytes = PacketParser.GetPacketBytes(packet);
+                        foreach(var d in bytes)
+                        {
+                            kcp.Send(d);
+                        }
+                    }
+                }
+            }
+            return Task.CompletedTask;
         }
 
         public override void WriteSendBuffer(Packet packet)
         {
-            throw new NotImplementedException();
+            sendQueut.Enqueue(packet);
         }
 
         public override void DisConnect()
@@ -194,7 +209,7 @@ namespace NetChannel
 
         private void Output(byte[] bytes, int count)
         {
-            SocketClient.Send(bytes, count, this.DefaultEndPoint);
+            socketClient.Send(bytes, count, this.DefaultEndPoint);
         }
 
     }

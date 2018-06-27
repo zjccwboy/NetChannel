@@ -296,64 +296,64 @@ namespace NetChannel
             Buffer.Write(bytes, offset, length);
         }
 
-        //public void WriteBuffer(Packet packet)
-        //{
-        //    var bodySize = 0;
-        //    if (packet.Data != null)
-        //    {
-        //        bodySize = packet.Data.Length;
-        //        if (packet.Data.Length > BodyMaxSize)
-        //        {
-        //            throw new ArgumentOutOfRangeException();
-        //        }
-        //    }
-
-        //    int headSize = packet.IsRpc ? HeadMaxSize : HeadMinSize;
-        //    int packetSize = headSize + bodySize;
-        //    var sizeBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(Convert.ToInt16(packetSize)));
-        //    Buffer.Write(sizeBytes);
-
-        //    var flagBytes = new byte[1];
-        //    if (packet.IsRpc)
-        //    {
-        //        flagBytes[0] |= 1;
-        //    }
-        //    if (packet.IsHeartbeat)
-        //    {
-        //        flagBytes[0] |= 1 << 1;
-        //    }
-        //    if (packet.IsCompress)
-        //    {
-        //        flagBytes[0] |= 1 << 2;
-        //    }
-        //    if (packet.IsEncrypt)
-        //    {
-        //        flagBytes[0] |= 1 << 3;
-        //    }
-        //    if(packet.KcpProtocal > 0)
-        //    {
-        //        flagBytes[0] |= (byte)(packet.KcpProtocal << 5);
-        //    }
-        //    Buffer.Write(flagBytes);
-        //    if (packet.IsRpc)
-        //    {
-        //        var rpcBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(Convert.ToInt32(packet.RpcId)));
-        //        Buffer.Write(rpcBytes);
-        //    }
-        //    if (packet.Data != null)
-        //    {
-        //        Buffer.Write(packet.Data);
-        //    }
-        //}
-
         public void WriteBuffer(Packet packet)
         {
-            var data = GetPacketBytes(packet);
-            foreach(var bytes in data)
+            var bodySize = 0;
+            if (packet.Data != null)
             {
-                Buffer.Write(bytes);
+                bodySize = packet.Data.Length;
+                if (packet.Data.Length > BodyMaxSize)
+                {
+                    throw new ArgumentOutOfRangeException();
+                }
+            }
+
+            int headSize = packet.IsRpc ? HeadMaxSize : HeadMinSize;
+            int packetSize = headSize + bodySize;
+            var sizeBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(Convert.ToInt16(packetSize)));
+            Buffer.Write(sizeBytes);
+
+            var flagBytes = new byte[1];
+            if (packet.IsRpc)
+            {
+                flagBytes[0] |= 1;
+            }
+            if (packet.IsHeartbeat)
+            {
+                flagBytes[0] |= 1 << 1;
+            }
+            if (packet.IsCompress)
+            {
+                flagBytes[0] |= 1 << 2;
+            }
+            if (packet.IsEncrypt)
+            {
+                flagBytes[0] |= 1 << 3;
+            }
+            if (packet.KcpProtocal > 0)
+            {
+                flagBytes[0] |= (byte)(packet.KcpProtocal << 5);
+            }
+            Buffer.Write(flagBytes);
+            if (packet.IsRpc)
+            {
+                var rpcBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(Convert.ToInt32(packet.RpcId)));
+                Buffer.Write(rpcBytes);
+            }
+            if (packet.Data != null)
+            {
+                Buffer.Write(packet.Data);
             }
         }
+
+        //public void WriteBuffer(Packet packet)
+        //{
+        //    var data = GetPacketBytes(packet);
+        //    foreach(var bytes in data)
+        //    {
+        //        Buffer.Write(bytes);
+        //    }
+        //}
 
         public static List<byte[]> GetPacketBytes(Packet packet)
         {
