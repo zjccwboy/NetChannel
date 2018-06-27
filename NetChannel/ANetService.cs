@@ -39,7 +39,7 @@ namespace NetChannel
         /// </summary>
         internal abstract WorkQueue SendQueue { get;}
 
-        private void AddChannel(ANetChannel channel)
+        protected void AddChannel(ANetChannel channel)
         {
             Channels.TryAdd(channel.Id, channel);
         }
@@ -74,7 +74,7 @@ namespace NetChannel
             });
         }
 
-        private void AddHandler(ANetChannel channel)
+        protected void AddHandler(ANetChannel channel)
         {
             if (!Handlers.ContainsKey(channel.Id))
             {

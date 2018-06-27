@@ -16,11 +16,6 @@ namespace NetChannel
         internal bool IsSuccess;
 
         /// <summary>
-        /// Rpc请求标识
-        /// </summary>
-        public int RpcId;
-
-        /// <summary>
         /// Rpc请求标志
         /// </summary>
         internal bool IsRpc;
@@ -44,6 +39,21 @@ namespace NetChannel
         /// Kcp包协议
         /// </summary>
         internal byte KcpProtocal;
+
+        /// <summary>
+        /// 是否是KCP包
+        /// </summary>
+        public bool IsKcpConnect;
+
+        /// <summary>
+        /// Rpc请求标识
+        /// </summary>
+        public int RpcId;
+
+        /// <summary>
+        /// KCP连接标识
+        /// </summary>
+        public int KcpConnectSN;
 
         /// <summary>
         /// 数据包
@@ -77,6 +87,11 @@ namespace NetChannel
         Rpc,
 
         /// <summary>
+        /// KCP连接标识
+        /// </summary>
+        KcpSN,
+
+        /// <summary>
         /// 包体
         /// </summary>
         Body,
@@ -91,11 +106,13 @@ namespace NetChannel
         private byte[] bodyBytes = new byte[0];
         private byte[] headBytes = new byte[HeadMaxSize];
         private int rpcId;
+        private int kcpConnectSN;
         private bool isRpc;
         private bool isCompress;
         private bool isHeartbeat;
         private bool isEncrypt;
         private byte kcpProtocal;
+        private bool isKcpConnect;
 
         private int readLength = 0;
         private int packetSize = 0;
@@ -107,8 +124,9 @@ namespace NetChannel
         public static readonly int PacketFlagSize = sizeof(short);
         public static readonly int BitFlagSize = sizeof(byte);
         public static readonly int RpcFlagSize = sizeof(int);
+        public static readonly int KcpIdFlagSize = sizeof(int);
         public static readonly int HeadMinSize = PacketFlagSize + BitFlagSize;
-        public static readonly int HeadMaxSize = PacketFlagSize + BitFlagSize + RpcFlagSize;
+        public static readonly int HeadMaxSize = PacketFlagSize + BitFlagSize + RpcFlagSize + KcpIdFlagSize;
         public static readonly int BodyMaxSize = short.MaxValue - HeadMaxSize;
 
         private void Parse()
@@ -156,7 +174,14 @@ namespace NetChannel
                             }
                             else
                             {
-                                state = ParseState.Body;
+                                if (isKcpConnect)
+                                {
+                                    state = ParseState.KcpSN;
+                                }
+                                else
+                                {
+                                    state = ParseState.Body;
+                                }
                             }
                         }
                         break;
@@ -178,11 +203,40 @@ namespace NetChannel
                             }
                             readLength += RpcFlagSize;
                             rpcId = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(headBytes, HeadMinSize));
+                            if (isKcpConnect)
+                            {
+                                state = ParseState.KcpSN;
+                            }
+                            else
+                            {
+                                state = ParseState.Body;
+                            }
+                        }
+                        break;
+                    case ParseState.KcpSN:
+                        var needSize = isRpc ? HeadMinSize + RpcFlagSize : HeadMinSize;
+                        if (Buffer.DataSize >= KcpIdFlagSize && readLength == needSize)
+                        {
+                            if (Buffer.FirstCount >= KcpIdFlagSize)
+                            {
+                                Array.Copy(Buffer.First, Buffer.FirstOffset, headBytes, needSize, KcpIdFlagSize);
+                                Buffer.UpdateRead(KcpIdFlagSize);
+                            }
+                            else
+                            {
+                                var count = Buffer.FirstCount;
+                                Array.Copy(Buffer.First, Buffer.FirstOffset, headBytes, needSize, count);
+                                Buffer.UpdateRead(count);
+                                Array.Copy(Buffer.First, Buffer.FirstOffset, headBytes, needSize + count, KcpIdFlagSize - count);
+                                Buffer.UpdateRead(KcpIdFlagSize - count);
+                            }
+                            readLength += KcpIdFlagSize;
+                            kcpConnectSN = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(headBytes, needSize));
                             state = ParseState.Body;
                         }
                         break;
                     case ParseState.Body:
-                        var needSize = packetSize - readLength;
+                        needSize = packetSize - readLength;
                         if (Buffer.DataSize >= needSize)
                         {
                             if (Buffer.FirstCount >= needSize)
@@ -204,7 +258,6 @@ namespace NetChannel
                                 readLength += count;
                             }
                         }
-
                         break;
                 }
 
@@ -243,17 +296,21 @@ namespace NetChannel
             isCompress = Convert.ToBoolean(flagByte >> 2 & 1);
             isEncrypt = Convert.ToBoolean(flagByte >> 3 & 1);
             kcpProtocal = (byte)(flagByte >> 3 & 24);
-            headSize = isRpc ? HeadMaxSize : HeadMinSize;
+            isKcpConnect = Convert.ToBoolean(flagByte >> 6 & 1);
+            headSize = isRpc ? HeadMinSize + RpcFlagSize : HeadMinSize;
+            headSize = isKcpConnect ? headSize + KcpIdFlagSize : headSize;
         }
 
         private void Flush()
         {
             rpcId = 0;
+            kcpConnectSN = 0;
             isRpc = false;
             isEncrypt = false;
             isCompress = false;
             isHeartbeat = false;
             kcpProtocal = 0;
+            isKcpConnect = false;
             readLength = 0;
             packetSize = 0;
             headSize = 0;
@@ -282,6 +339,7 @@ namespace NetChannel
                         IsCompress = isCompress,
                         IsHeartbeat = isHeartbeat,
                         KcpProtocal = kcpProtocal,
+                        KcpConnectSN = kcpConnectSN,
                         Data = bodyBytes,
                     };
                     Flush();
@@ -308,7 +366,8 @@ namespace NetChannel
                 }
             }
 
-            int headSize = packet.IsRpc ? HeadMaxSize : HeadMinSize;
+            int headSize = packet.IsRpc ? HeadMinSize + RpcFlagSize : HeadMinSize;
+            headSize = packet.IsKcpConnect ? headSize + KcpIdFlagSize : headSize;
             int packetSize = headSize + bodySize;
             var sizeBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(Convert.ToInt16(packetSize)));
             Buffer.Write(sizeBytes);
@@ -333,6 +392,12 @@ namespace NetChannel
             if (packet.KcpProtocal > 0)
             {
                 flagBytes[0] |= (byte)(packet.KcpProtocal << 5);
+            }
+            if (packet.IsKcpConnect)
+            {
+                flagBytes[0] |= 1 << 6;
+                var rpcBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(Convert.ToInt32(packet.KcpConnectSN)));
+                Buffer.Write(rpcBytes);
             }
             Buffer.Write(flagBytes);
             if (packet.IsRpc)
@@ -368,7 +433,8 @@ namespace NetChannel
                 }
             }
 
-            int headSize = packet.IsRpc ? PacketParser.HeadMaxSize : PacketParser.HeadMinSize;
+            int headSize = packet.IsRpc ? HeadMinSize + RpcFlagSize : HeadMinSize;
+            headSize = packet.IsKcpConnect ? headSize + KcpIdFlagSize : headSize;
             int packetSize = headSize + bodySize;
             var sizeBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(Convert.ToInt16(packetSize)));
             bytes.Add(sizeBytes);
@@ -393,6 +459,12 @@ namespace NetChannel
             if (packet.KcpProtocal > 0)
             {
                 flagBytes[0] |= (byte)(packet.KcpProtocal << 5);
+            }
+            if (packet.IsKcpConnect)
+            {
+                flagBytes[0] |= 1 << 6;
+                var rpcBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(Convert.ToInt32(packet.KcpConnectSN)));
+                bytes.Add(rpcBytes);
             }
 
             bytes.Add(flagBytes);

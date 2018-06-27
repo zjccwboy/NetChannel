@@ -58,6 +58,22 @@ namespace NetChannel
                 }
             }
         }
+        private void DoAccept(ANetChannel channel)
+        {
+            try
+            {
+                channel.OnDisConnect = DoDisConnectOnServer;
+                channel.Connected = true;
+                AddChannel(channel);
+                AddHandler(channel);
+                channel.StartRecv();
+                LogRecord.Log(LogLevel.Info, "DoAccept", $"接受客户端:{channel.RemoteEndPoint}连接成功...");
+            }
+            catch (Exception e)
+            {
+                LogRecord.Log(LogLevel.Warn, "DoAccept", e);
+            }
+        }
 
         public override async Task<ANetChannel> ConnectAsync()
         {

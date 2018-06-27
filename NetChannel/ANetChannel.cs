@@ -17,7 +17,7 @@ namespace NetChannel
         }
     }
 
-    public class KcpConnectId
+    public class KcpConnectSN
     {
         private static int id;
         public static int CreateId()

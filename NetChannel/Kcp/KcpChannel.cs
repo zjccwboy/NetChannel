@@ -31,7 +31,6 @@ namespace NetChannel
         private UdpClient socketClient;
         public uint remoteConn;
         private readonly Kcp kcp;
-        private readonly byte[] cacheBytes = new byte[1400];
         private ConcurrentQueue<Packet> sendQueut = new ConcurrentQueue<Packet>();
 
         private static int synPacketSize = PacketParser.HeadMinSize;
@@ -117,7 +116,7 @@ namespace NetChannel
                         return false;
                     }
 
-                    ConnectSN = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(ackPacket.Data, 0));
+                    ConnectSN = ackPacket.KcpConnectSN;
                     if (ConnectSN == 0)
                     {
                         return false;
@@ -127,10 +126,12 @@ namespace NetChannel
                     var snAckPacket = new Packet
                     {
                         KcpProtocal = KcpNetProtocal.ACK,
+                        KcpConnectSN = ConnectSN,
                         Data = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(Convert.ToInt32(ConnectSN))),
                     };
                     Send(snAckPacket);
                     Connected = true;
+                    OnConnect?.Invoke(this);
                     return true;
                 }
                 return false;
@@ -142,8 +143,20 @@ namespace NetChannel
             }
         }
 
+        private void TrySend(Packet packet)
+        {
+            if (Connected)
+            {
+                Send(packet);
+                return;
+            }
+            sendQueut.Enqueue(packet);
+        }
+
         private void Send(Packet packet)
         {
+            packet.IsKcpConnect = true;
+            packet.KcpConnectSN = ConnectSN;
             var bytes = PacketParser.GetPacketBytes(packet);
             SendToKcp(bytes);
         }
@@ -210,10 +223,6 @@ namespace NetChannel
                                 OnReceive?.Invoke(packet);
                             }
                         }
-                        else
-                        {
-                            //Console.WriteLine($"接收到客户端:{RemoteEndPoint}心跳包...");
-                        }
                     }
                 }
                 catch (Exception e)
@@ -222,20 +231,33 @@ namespace NetChannel
                 }
             }
         }
-
+                
         private void HandleSYN(Packet packet)
         {
-
+            //应答客户端SYN连接请求
+            packet.KcpConnectSN = KcpConnectSN.CreateSN();
+            packet.KcpProtocal = KcpNetProtocal.ACK;
+            var bytes = PacketParser.GetPacketBytes(packet);
+            SendToKcp(bytes);
         }
 
         private void HandleACK(Packet packet)
         {
-
+            var ipEndPoint = this.socketClient.Client.RemoteEndPoint as IPEndPoint;
+            var channel = new KcpChannel(ipEndPoint, this.socketClient);
+            channel.RemoteEndPoint = this.socketClient.Client.RemoteEndPoint;
+            channel.LocalEndPoint = this.socketClient.Client.LocalEndPoint;
+            channel.ConnectSN = packet.KcpConnectSN;
+            OnConnect?.Invoke(channel);
         }
 
         private void HandleFIN(Packet packet)
         {
-
+            if (Connected)
+            {
+                Connected = false;
+                OnDisConnect?.Invoke(this);
+            }
         }
 
         public override Task StartSend()
@@ -267,6 +289,12 @@ namespace NetChannel
         {
             try
             {
+                //发送FIN包
+                var finPacket = new Packet
+                {
+                    KcpProtocal = KcpNetProtocal.FIN,
+                };
+                Send(finPacket);
                 Connected = false;
                 OnDisConnect?.Invoke(this);
             }
