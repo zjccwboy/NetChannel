@@ -73,6 +73,7 @@ namespace NetChannel
         public override async Task<ANetChannel> ConnectAsync()
         {
             var channel = new KcpChannel(this.endPoint, this);
+            channel.OnConnect = DoConnect;
             var isConnected = await channel.StartConnecting();
             if (!isConnected)
             {

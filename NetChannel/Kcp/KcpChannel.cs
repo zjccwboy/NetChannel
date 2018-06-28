@@ -35,6 +35,8 @@ namespace NetChannel
         private ConcurrentQueue<Packet> sendQueut = new ConcurrentQueue<Packet>();
 
         private static int synPacketSize = PacketParser.HeadMinSize;
+        private static int ackPacketSize = PacketParser.HeadMinSize + sizeof(int);
+        private static int finPacketSize = PacketParser.HeadMinSize + sizeof(int);
 
         /// <summary>
         /// 构造函数,Connect
@@ -109,7 +111,11 @@ namespace NetChannel
                 //接收服务端ACK包与SN
                 UdpReceiveResult receiveResult;
                 receiveResult = await socketClient.ReceiveAsync();
-                RecvParser.WriteBuffer(receiveResult.Buffer, 0, receiveResult.Buffer.Length);
+                if(receiveResult.Buffer.Length != ackPacketSize)
+                {
+                    throw new SocketException();
+                }
+                RecvParser.WriteBuffer(receiveResult.Buffer, 0, ackPacketSize);
                 var ackPacket = RecvParser.ReadBuffer();
                 if (!ackPacket.IsSuccess)
                 {
