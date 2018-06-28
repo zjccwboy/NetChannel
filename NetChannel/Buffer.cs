@@ -9,7 +9,7 @@ namespace NetChannel
     /// </summary>
     public class Buffer
     {
-        public const int BlockSize = 8192;
+        private int blockSize = 8192;
 
         /// <summary>
         /// 缓存队列
@@ -24,7 +24,14 @@ namespace NetChannel
         public Buffer()
         {
             //默认分配一块缓冲区
-            bufferQueue.Enqueue(new byte[BlockSize]);
+            bufferQueue.Enqueue(new byte[blockSize]);
+        }
+
+        public Buffer(int blockSize)
+        {
+            this.blockSize = blockSize;
+            //默认分配一块缓冲区
+            bufferQueue.Enqueue(new byte[blockSize]);
         }
 
         private int readOffset;
@@ -34,7 +41,7 @@ namespace NetChannel
         {
             get
             {
-                return readOffset % BlockSize;
+                return readOffset % blockSize;
             }
         }
 
@@ -46,10 +53,10 @@ namespace NetChannel
                 throw new ArgumentOutOfRangeException("read offset out of buffer.");
             }
 
-            if (readOffset >= BlockSize)
+            if (readOffset >= blockSize)
             {
-                readOffset -= BlockSize;
-                writeOffset -= BlockSize;
+                readOffset -= blockSize;
+                writeOffset -= blockSize;
                 bufferCache.Enqueue(bufferQueue.Dequeue());
             }
         }
@@ -58,7 +65,7 @@ namespace NetChannel
         {
             get
             {
-                return writeOffset % BlockSize;
+                return writeOffset % blockSize;
             }
         }
 
@@ -73,7 +80,7 @@ namespace NetChannel
                 }
                 else
                 {
-                    bufferQueue.Enqueue(new byte[BlockSize]);
+                    bufferQueue.Enqueue(new byte[blockSize]);
                 }
             }
         }
@@ -82,9 +89,9 @@ namespace NetChannel
         {
             get
             {
-                if(writeOffset > BlockSize)
+                if(writeOffset > blockSize)
                 {
-                    return BlockSize - FirstOffset;
+                    return blockSize - FirstOffset;
                 }
                 else
                 {
@@ -97,7 +104,7 @@ namespace NetChannel
         {
             get
             {
-                return BlockSize - LastOffset;
+                return blockSize - LastOffset;
             }
         }
 

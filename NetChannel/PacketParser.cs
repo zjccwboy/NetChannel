@@ -173,7 +173,18 @@ namespace NetChannel
     /// </summary>
     public class PacketParser
     {
-        internal readonly Buffer Buffer = new Buffer();
+
+        public PacketParser()
+        {
+            Buffer = new Buffer();
+        }
+
+        public PacketParser(int blockSize)
+        {
+            Buffer = new Buffer(blockSize);
+        }
+
+        internal readonly Buffer Buffer;
         private byte[] bodyBytes = new byte[0];
         private byte[] headBytes = new byte[HeadMaxSize];
         private int rpcId;

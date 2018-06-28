@@ -38,6 +38,9 @@ namespace NetChannel
         private static int ackPacketSize = PacketParser.HeadMinSize + sizeof(int);
         private static int finPacketSize = PacketParser.HeadMinSize + sizeof(int);
 
+        private readonly static PacketParser ConnectPacketParser = new PacketParser(11);
+
+
         /// <summary>
         /// 构造函数,Connect
         /// </summary>
@@ -167,6 +170,28 @@ namespace NetChannel
                 try
                 {
                     recvResult = await this.socketClient.ReceiveAsync();
+
+                    ConnectPacketParser.WriteBuffer(recvResult.Buffer, 0, recvResult.Buffer.Length);
+                    var packet = ConnectPacketParser.ReadBuffer();
+                    if (!packet.IsSuccess)
+                    {
+                        continue;
+                    }
+                    if (packet.KcpProtocal == KcpNetProtocal.SYN)
+                    {
+                        HandleSYN(packet, recvResult.RemoteEndPoint);
+                        continue;
+                    }
+                    else if (packet.KcpProtocal == KcpNetProtocal.ACK)
+                    {
+                        HandleACK(packet, recvResult.RemoteEndPoint);
+                        continue;
+                    }
+                    else if (packet.KcpProtocal == KcpNetProtocal.FIN)
+                    {
+                        HandleFIN(packet);
+                        continue;
+                    }
                 }
                 catch (Exception e)
                 {
@@ -193,25 +218,6 @@ namespace NetChannel
                     while (true)
                     {
                         var packet = RecvParser.ReadBuffer();
-                        if (!packet.IsSuccess)
-                        {
-                            break;
-                        }
-                        if (packet.KcpProtocal == KcpNetProtocal.SYN)
-                        {
-                            HandleSYN(packet, recvResult.RemoteEndPoint);
-                            break;
-                        }
-                        else if (packet.KcpProtocal == KcpNetProtocal.ACK)
-                        {
-                            HandleACK(packet, recvResult.RemoteEndPoint);
-                            break;
-                        }
-                        else if (packet.KcpProtocal == KcpNetProtocal.FIN)
-                        {
-                            HandleFIN(packet);
-                            break;
-                        }
 
                         if (!netService.Channels.TryGetValue(packet.KcpConnectSN, out ANetChannel channel))
                         {
