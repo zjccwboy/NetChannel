@@ -96,7 +96,6 @@ namespace NetChannel
                 UdpReceiveResult receiveResult;
                 receiveResult = await socketClient.ReceiveAsync();
                 RecvParser.WriteBuffer(receiveResult.Buffer, 0, ackPacketSize);
-                RecvParser.Buffer.UpdateWrite(ackPacketSize);
                 var ackPacket = RecvParser.ReadBuffer();
                 if (!ackPacket.IsSuccess)
                 {
@@ -167,6 +166,7 @@ namespace NetChannel
                 try
                 {
                     recvResult = await this.socketClient.ReceiveAsync();
+                    RemoteEndPoint = recvResult.RemoteEndPoint;
                 }
                 catch (Exception e)
                 {
@@ -282,7 +282,7 @@ namespace NetChannel
 
         private void Output(byte[] bytes, int count)
         {
-            socketClient.Send(bytes, count, this.DefaultEndPoint);
+            socketClient.Send(bytes, count, this.RemoteEndPoint);
         }
 
         private void SendFIN()
@@ -292,7 +292,7 @@ namespace NetChannel
                 KcpProtocal = KcpNetProtocal.FIN,
             };
             var bytes = finPacket.GetHeadBytes();
-            socketClient.Send(bytes, bytes.Length, this.DefaultEndPoint);
+            socketClient.Send(bytes, bytes.Length, this.RemoteEndPoint);
         }
 
         private void HandleSYN(Packet packet)
@@ -310,10 +310,7 @@ namespace NetChannel
 
         private void HandleACK(Packet packet)
         {
-            var ipEndPoint = this.socketClient.Client.RemoteEndPoint as IPEndPoint;
-            var channel = new KcpChannel(ipEndPoint, this.socketClient, this.netService);
-            channel.RemoteEndPoint = this.socketClient.Client.RemoteEndPoint;
-            channel.LocalEndPoint = this.socketClient.Client.LocalEndPoint;
+            var channel = new KcpChannel(this.RemoteEndPoint, this.socketClient, this.netService);
             channel.ConnectSN = packet.KcpConnectSN;
             channel.Id = ConnectSN;//KCP直接使用ConnectSN做ChannelId
             OnConnect?.Invoke(channel);

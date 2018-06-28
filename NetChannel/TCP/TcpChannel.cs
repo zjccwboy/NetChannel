@@ -62,7 +62,7 @@ namespace NetChannel
                 await socketClient.ConnectAsync(DefaultEndPoint.Address, DefaultEndPoint.Port);
                 Connected = true;
                 RemoteEndPoint = DefaultEndPoint;
-                LocalEndPoint = socketClient.Client.LocalEndPoint;
+                LocalEndPoint = socketClient.Client.LocalEndPoint as IPEndPoint;
                 OnConnect?.Invoke(this);
                 return Connected;
             }

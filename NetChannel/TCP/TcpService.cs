@@ -47,8 +47,8 @@ namespace NetChannel
                 {
                     var client = await tcpListener.AcceptTcpClientAsync();
                     var channel = new TcpChannel(endPoint, client, this);
-                    channel.RemoteEndPoint = client.Client.RemoteEndPoint;
-                    channel.LocalEndPoint = client.Client.LocalEndPoint;
+                    channel.RemoteEndPoint = client.Client.RemoteEndPoint as IPEndPoint;
+                    channel.LocalEndPoint = client.Client.LocalEndPoint as IPEndPoint;
                     channel.OnConnect = DoAccept;
                     channel.OnConnect?.Invoke(channel);
                 }
