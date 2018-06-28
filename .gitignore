@@ -586,3 +586,5 @@
 /TestKcpServer/obj/Debug/TestKcpServer.pdb
 /TestKcpClient/obj/Debug/*.cache
 /TestKcpServer/obj/Debug
+/TestKcpClient/bin/Debug/Logs/*.log
+/TestKcpServer/bin/Debug/Logs/*.log

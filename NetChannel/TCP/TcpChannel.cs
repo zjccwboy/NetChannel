@@ -24,19 +24,20 @@ namespace NetChannel
         private PacketParser SendParser;
 
         /// <summary>
-        /// 构造函数
+        /// 构造函数,Connect
         /// </summary>
         /// <param name="endPoint">Ip/端口</param>
         /// <param name="netService">网络服务</param>
         public TcpChannel(IPEndPoint endPoint, ANetService netService) : base(netService)
         {
             this.DefaultEndPoint = endPoint;
+            this.RemoteEndPoint = endPoint as IPEndPoint;
             RecvParser = new PacketParser();
             SendParser = new PacketParser();
         }
 
         /// <summary>
-        /// 构造函数
+        /// 构造函数,Accept
         /// </summary>
         /// <param name="endPoint">Ip/端口</param>
         /// <param name="tcpClient">Ip/端口</param>
@@ -44,6 +45,7 @@ namespace NetChannel
         public TcpChannel(IPEndPoint endPoint, TcpClient tcpClient, ANetService netService) : base(netService)
         {
             this.DefaultEndPoint = endPoint;
+            this.LocalEndPoint = endPoint as IPEndPoint;
             RecvParser = new PacketParser();
             SendParser = new PacketParser();
             socketClient = tcpClient;
@@ -80,7 +82,6 @@ namespace NetChannel
         public override async Task<bool> ReConnecting()
         {
             DisConnect();
-            socketClient = new TcpClient();
             Connected = false;
             return await StartConnecting();
         }
@@ -253,8 +254,10 @@ namespace NetChannel
 
             try
             {
-                socketClient.Close();
-                socketClient.Dispose();
+                var socket = socketClient;
+                socketClient = null;
+                socket.Close();
+                socket.Dispose();
             }
             catch { }
         }

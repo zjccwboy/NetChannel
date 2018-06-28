@@ -72,8 +72,7 @@ namespace NetChannel
 
         public override async Task<ANetChannel> ConnectAsync()
         {
-            udpClient = udpClient ?? new UdpClient(new IPEndPoint(IPAddress.Any, 0));
-            var channel = new KcpChannel(this.endPoint, udpClient, this);
+            var channel = new KcpChannel(this.endPoint, this);
             var isConnected = await channel.StartConnecting();
             if (!isConnected)
             {
