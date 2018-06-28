@@ -107,6 +107,8 @@ namespace NetChannel
                     KcpProtocal = KcpNetProtocal.SYN,
                 };
                 Send(synPacket);
+                //var synBytes = synPacket.GetHeadBytes();
+                //socketClient.Send(synBytes, synBytes.Length, this.RemoteEndPoint);
 
                 //接收服务端ACK包与SN
                 UdpReceiveResult receiveResult;
@@ -304,7 +306,7 @@ namespace NetChannel
         private void KcpStartSend()
         {
             kcp.Update(this.LastSendHeartbeat);
-            this.LastSendHeartbeat = TimeUitls.Now();
+            this.LastSendHeartbeat = this.kcp.Check(this.LastSendHeartbeat);
         }
 
         private void SendFIN(IPEndPoint endPoint, int kcpConnectSN)

@@ -1,7 +1,6 @@
 ﻿
 using System.Net;
 using System.Threading.Tasks;
-using System.Threading;
 using System;
 using Common;
 
@@ -136,7 +135,7 @@ namespace NetChannel
         /// 发送数据
         /// </summary>
         /// <returns></returns>
-        public async Task StartSend()
+        internal async Task StartSend()
         {
             var channels = netService.Channels.Values;
             foreach (var channel in channels)
@@ -148,7 +147,7 @@ namespace NetChannel
         /// <summary>
         /// 心跳检测
         /// </summary>
-        public void CheckHeadbeat()
+        internal void CheckHeadbeat()
         {
             var now = TimeUitls.Now();
 
@@ -190,7 +189,7 @@ namespace NetChannel
                 foreach(var channel in channels)
                 {
                     var timeSpan = now - channel.LastRecvHeartbeat;
-                    if (timeSpan > HeartbeatTime)
+                    if (timeSpan > HeartbeatTime * 2)
                     {
                         LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"客户端:{channel.RemoteEndPoint}连接超时，心跳检测断开，心跳时长{timeSpan}...");
                         channel.DisConnect();

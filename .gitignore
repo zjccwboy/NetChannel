@@ -588,3 +588,9 @@
 /TestKcpServer/obj/Debug
 /TestKcpClient/bin/Debug/Logs/*.log
 /TestKcpServer/bin/Debug/Logs/*.log
+/kcp-csharp/obj/Debug/DesignTimeResolveAssemblyReferencesInput.cache
+/kcp-csharp/obj/Debug/KcpProject.csproj.CoreCompileInputs.cache
+/kcp-csharp/obj/Debug/KcpProject.csproj.FileListAbsolute.txt
+/kcp-csharp/obj/Debug/KcpProject.csprojResolveAssemblyReference.cache
+/kcp-csharp/obj/Debug/KcpProject.exe
+/kcp-csharp/obj/Debug/KcpProject.pdb
