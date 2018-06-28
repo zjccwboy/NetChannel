@@ -109,9 +109,10 @@ namespace NetChannel
                 {
                     KcpProtocal = KcpNetProtocal.SYN,
                 };
-                Send(synPacket);
-                //var synBytes = synPacket.GetHeadBytes();
-                //socketClient.Send(synBytes, synBytes.Length, this.RemoteEndPoint);
+
+                //握手包不要经过KCP发送
+                var synBytes = synPacket.GetHeadBytes();
+                socketClient.Send(synBytes, synBytes.Length, this.RemoteEndPoint);
 
                 //接收服务端ACK包与SN
                 UdpReceiveResult receiveResult;
@@ -149,7 +150,11 @@ namespace NetChannel
                         KcpConnectSN = ConnectSN,
                         Data = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(Convert.ToInt32(ConnectSN))),
                     };
-                    Send(snAckPacket);
+
+                    //握手包不要经过KCP发送
+                    var ackBytes = snAckPacket.GetHeadBytes();
+                    socketClient.Send(ackBytes, ackBytes.Length, this.RemoteEndPoint);
+
                     Connected = true;
                     OnConnect?.Invoke(this);
                     return true;
@@ -171,26 +176,26 @@ namespace NetChannel
                 {
                     recvResult = await this.socketClient.ReceiveAsync();
 
+                    //客户端握手处理
                     ConnectPacketParser.WriteBuffer(recvResult.Buffer, 0, recvResult.Buffer.Length);
                     var packet = ConnectPacketParser.ReadBuffer();
-                    if (!packet.IsSuccess)
+                    if (packet.IsSuccess)
                     {
-                        continue;
-                    }
-                    if (packet.KcpProtocal == KcpNetProtocal.SYN)
-                    {
-                        HandleSYN(packet, recvResult.RemoteEndPoint);
-                        continue;
-                    }
-                    else if (packet.KcpProtocal == KcpNetProtocal.ACK)
-                    {
-                        HandleACK(packet, recvResult.RemoteEndPoint);
-                        continue;
-                    }
-                    else if (packet.KcpProtocal == KcpNetProtocal.FIN)
-                    {
-                        HandleFIN(packet);
-                        continue;
+                        if (packet.KcpProtocal == KcpNetProtocal.SYN)
+                        {
+                            HandleSYN(packet, recvResult.RemoteEndPoint);
+                            continue;
+                        }
+                        else if (packet.KcpProtocal == KcpNetProtocal.ACK)
+                        {
+                            HandleACK(packet, recvResult.RemoteEndPoint);
+                            continue;
+                        }
+                        else if (packet.KcpProtocal == KcpNetProtocal.FIN)
+                        {
+                            HandleFIN(packet);
+                            continue;
+                        }
                     }
                 }
                 catch (Exception e)
@@ -323,6 +328,8 @@ namespace NetChannel
                 IsKcpConnect = true,
                 KcpConnectSN = kcpConnectSN,
             };
+
+            //握手包不经过KCP发送
             var bytes = finPacket.GetHeadBytes();
             socketClient.Send(bytes, bytes.Length, endPoint);
         }
@@ -337,6 +344,8 @@ namespace NetChannel
             }
             packet.KcpProtocal = KcpNetProtocal.ACK;
             packet.IsKcpConnect = true;
+
+            //握手包不经过KCP发送
             var bytes = packet.GetHeadBytes();
             socketClient.Send(bytes, bytes.Length, endPoint);
         }
