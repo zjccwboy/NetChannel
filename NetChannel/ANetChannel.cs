@@ -6,28 +6,6 @@ using System.Threading.Tasks;
 
 namespace NetChannel
 {
-    public class IdCreator
-    {
-        private static int id;
-        public static int CreateId()
-        {
-            Interlocked.Increment(ref id);
-            Interlocked.CompareExchange(ref id, 1, int.MaxValue);
-            return id;
-        }
-    }
-
-    public class KcpConnectSN
-    {
-        private static int id;
-        public static int CreateSN()
-        {
-            Interlocked.Increment(ref id);
-            Interlocked.CompareExchange(ref id, 1, int.MaxValue);
-            return id;
-        }
-    }
-
     /// <summary>
     /// 网络通道抽象类
     /// </summary>
@@ -90,12 +68,12 @@ namespace NetChannel
         /// <summary>
         /// 最后接收心跳时间
         /// </summary>
-        public DateTime LastRecvHeartbeat { get; set; } = DateTime.Now;
+        public uint LastRecvHeartbeat { get; set; } = TimeUitls.Now();
 
         /// <summary>
         /// 最后发送心跳时间
         /// </summary>
-        public DateTime LastSendHeartbeat { get; protected set; }
+        public uint LastSendHeartbeat { get; set; } = TimeUitls.Now();
 
         /// <summary>
         /// 接收回调事件

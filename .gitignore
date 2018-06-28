@@ -584,3 +584,5 @@
 /TestKcpServer/obj/Debug/TestKcpServer.exe
 /TestKcpServer/obj/Debug/TestKcpServer.exe.config
 /TestKcpServer/obj/Debug/TestKcpServer.pdb
+/TestKcpClient/obj/Debug/*.cache
+/TestKcpServer/obj/Debug

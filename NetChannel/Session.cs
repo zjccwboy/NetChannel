@@ -27,7 +27,7 @@ namespace NetChannel
         private ANetService netService;
         private IPEndPoint endPoint;
         private ANetChannel currentChannel;
-        private DateTime LastCheckTime;
+        private uint LastCheckTime;
         private SessionType sessionType;
         private ProtocalType protocalType;
 
@@ -150,10 +150,10 @@ namespace NetChannel
         /// </summary>
         public void CheckHeadbeat()
         {
-            var now = DateTime.Now;
+            var now = TimeUitls.Now();
 
             var lastCheckSpan = now - LastCheckTime;
-            if(lastCheckSpan.TotalMilliseconds < HeartbeatTime)
+            if(lastCheckSpan < HeartbeatTime)
             {
                 return;
             }
@@ -175,7 +175,7 @@ namespace NetChannel
                 //    currentChannel.DisConnect();
                 //}
                 var timeSpan = now - currentChannel.LastSendHeartbeat;
-                if (timeSpan.TotalMilliseconds > HeartbeatTime)
+                if (timeSpan > HeartbeatTime)
                 {
                     SendMessage(new Packet
                     {
@@ -190,9 +190,9 @@ namespace NetChannel
                 foreach(var channel in channels)
                 {
                     var timeSpan = now - channel.LastRecvHeartbeat;
-                    if (timeSpan.TotalMilliseconds > HeartbeatTime)
+                    if (timeSpan > HeartbeatTime)
                     {
-                        LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"客户端:{channel.RemoteEndPoint}连接超时，心跳检测断开，心跳时长{timeSpan.TotalMilliseconds}...");
+                        LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"客户端:{channel.RemoteEndPoint}连接超时，心跳检测断开，心跳时长{timeSpan}...");
                         channel.DisConnect();
                     }
                 }

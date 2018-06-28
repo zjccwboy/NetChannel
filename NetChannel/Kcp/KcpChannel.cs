@@ -156,6 +156,7 @@ namespace NetChannel
                     kcp.Send(buffer);
                 }
             }
+            kcp.Update(0);
         }
 
         public override async void StartRecv()
@@ -189,7 +190,6 @@ namespace NetChannel
                     }
 
                     RecvParser.WriteBuffer(cacheBytes, 0, count);
-                    RecvParser.Buffer.UpdateWrite(count);
                     while (true)
                     {
                         var packet = RecvParser.ReadBuffer();
@@ -218,7 +218,7 @@ namespace NetChannel
                             SendFIN();
                             continue;
                         }
-                        channel.LastRecvHeartbeat = DateTime.Now;
+                        channel.LastRecvHeartbeat = TimeUitls.Now();
                         if (!packet.IsHeartbeat)
                         {
                             if (packet.IsRpc)
@@ -292,20 +292,20 @@ namespace NetChannel
                 KcpProtocal = KcpNetProtocal.FIN,
             };
             var bytes = finPacket.GetHeadBytes();
-            socketClient.Client.Send(bytes);
+            socketClient.Send(bytes, bytes.Length, this.DefaultEndPoint);
         }
 
         private void HandleSYN(Packet packet)
         {
             //应答客户端SYN连接请求
             packet.KcpConnectSN = KcpConnectSN.CreateSN();
-            while (!netService.Channels.ContainsKey(packet.KcpConnectSN))
+            while (netService.Channels.ContainsKey(packet.KcpConnectSN))
             {
                 packet.KcpConnectSN = KcpConnectSN.CreateSN();
             }
             packet.KcpProtocal = KcpNetProtocal.ACK;
             var bytes = packet.GetHeadBytes();
-            socketClient.Client.Send(bytes);
+            socketClient.Send(bytes, bytes.Length);
         }
 
         private void HandleACK(Packet packet)

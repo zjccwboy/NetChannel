@@ -96,7 +96,7 @@ namespace NetChannel
             }
             if (KcpProtocal > 0)
             {
-                bytes[2] |= (byte)(KcpProtocal << 5);
+                bytes[2] |= (byte)(KcpProtocal << 4);
             }
             if (IsKcpConnect)
             {
@@ -366,7 +366,7 @@ namespace NetChannel
             isHeartbeat = Convert.ToBoolean(flagByte >> 1 & 1);
             isCompress = Convert.ToBoolean(flagByte >> 2 & 1);
             isEncrypt = Convert.ToBoolean(flagByte >> 3 & 1);
-            kcpProtocal = (byte)(flagByte >> 3 & 24);
+            kcpProtocal = (byte)(flagByte >> 4 & 3);
             isKcpConnect = Convert.ToBoolean(flagByte >> 6 & 1);
             headSize = isRpc ? HeadMinSize + RpcFlagSize : HeadMinSize;
             headSize = isKcpConnect ? headSize + KcpIdFlagSize : headSize;
