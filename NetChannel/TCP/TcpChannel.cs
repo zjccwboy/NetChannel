@@ -30,7 +30,6 @@ namespace NetChannel
         /// <param name="netService">网络服务</param>
         public TcpChannel(IPEndPoint endPoint, ANetService netService) : base(netService)
         {
-            this.DefaultEndPoint = endPoint;
             this.RemoteEndPoint = endPoint as IPEndPoint;
             RecvParser = new PacketParser();
             SendParser = new PacketParser();
@@ -44,7 +43,6 @@ namespace NetChannel
         /// <param name="netService">网络服务</param>
         public TcpChannel(IPEndPoint endPoint, TcpClient tcpClient, ANetService netService) : base(netService)
         {
-            this.DefaultEndPoint = endPoint;
             this.LocalEndPoint = endPoint as IPEndPoint;
             RecvParser = new PacketParser();
             SendParser = new PacketParser();
@@ -61,9 +59,8 @@ namespace NetChannel
             {
                 socketClient = socketClient ?? new TcpClient();
                 socketClient.NoDelay = true;
-                await socketClient.ConnectAsync(DefaultEndPoint.Address, DefaultEndPoint.Port);
+                await socketClient.ConnectAsync(RemoteEndPoint.Address, RemoteEndPoint.Port);
                 Connected = true;
-                RemoteEndPoint = DefaultEndPoint;
                 LocalEndPoint = socketClient.Client.LocalEndPoint as IPEndPoint;
                 OnConnect?.Invoke(this);
                 return Connected;

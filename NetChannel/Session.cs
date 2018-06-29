@@ -49,7 +49,7 @@ namespace NetChannel
             }
             else if(protocalType == ProtocalType.Kcp)
             {
-                netService = new KcpService(endPoint, this);
+                netService = new KcpService(endPoint, this, sessionType);
             }
             netService.SendQueue.Start();
             await netService.AcceptAsync();
@@ -69,7 +69,7 @@ namespace NetChannel
             }
             else if (protocalType == ProtocalType.Kcp)
             {
-                netService = new KcpService(endPoint, this);
+                netService = new KcpService(endPoint, this, sessionType);
             }
             netService.SendQueue.Start();
             currentChannel = await netService.ConnectAsync();
@@ -180,7 +180,7 @@ namespace NetChannel
                     {
                         IsHeartbeat = true
                     });
-                    LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"发送心跳包到服务端:{currentChannel.DefaultEndPoint}...");
+                    LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"发送心跳包到服务端:{currentChannel.RemoteEndPoint}...");
                 }
             }
             else if(sessionType == SessionType.Server)

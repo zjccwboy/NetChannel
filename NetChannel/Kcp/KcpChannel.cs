@@ -35,27 +35,27 @@ namespace NetChannel
         /// <summary>
         /// 构造函数,Connect
         /// </summary>
-        /// <param name="endPoint">Ip/端口</param>
+        /// <param name="recvResult">Udp接收数据包对象</param>
         /// <param name="udpClient">Ip/端口</param>
         /// <param name="netService">网络服务</param>
-        public KcpChannel(IPEndPoint endPoint, UdpClient udpClient, ANetService netService) : base(netService)
+        public KcpChannel(UdpReceiveResult recvResult, UdpClient udpClient, ANetService netService) : base(netService)
         {
-            this.DefaultEndPoint = endPoint;
-            this.RemoteEndPoint = endPoint as IPEndPoint;
+            this.LocalEndPoint = udpClient.Client.LocalEndPoint as IPEndPoint;
+            this.RemoteEndPoint = recvResult.RemoteEndPoint;
             RecvParser = new PacketParser();
         }
 
         /// <summary>
         /// 构造函数,Accept
         /// </summary>
-        /// <param name="endPoint">Ip/端口</param>
+        /// <param name="recvResult">Udp接收数据包对象</param>
         /// <param name="udpClient">Ip/端口</param>
         /// <param name="netService">网络服务</param>
         /// <param name="connectConv">网络连接Conv</param>
-        public KcpChannel(IPEndPoint endPoint, UdpClient udpClient, ANetService netService, uint connectConv) : base(netService, connectConv)
+        public KcpChannel(UdpReceiveResult recvResult, UdpClient udpClient, ANetService netService, uint connectConv) : base(netService, connectConv)
         {
-            this.DefaultEndPoint = endPoint;
-            this.LocalEndPoint = endPoint;
+            this.LocalEndPoint = udpClient.Client.LocalEndPoint as IPEndPoint;
+            this.RemoteEndPoint = recvResult.RemoteEndPoint;
             socketClient = udpClient;
             RecvParser = new PacketParser();
         }
@@ -146,6 +146,10 @@ namespace NetChannel
                             OnReceive?.Invoke(packet);
                         }
                     }
+                    else
+                    {
+                        LogRecord.Log(LogLevel.Warn, "HandleRecv", $"接收到客户端:{recvResult.RemoteEndPoint}心跳包");
+                    }
                 }
             }
         }
@@ -204,6 +208,7 @@ namespace NetChannel
 
         private void Output(byte[] bytes, int count)
         {
+            LogRecord.Log(LogLevel.Warn, "Output", $"发送数据到:{this.RemoteEndPoint}");
             socketClient.Send(bytes, count, this.RemoteEndPoint);
         }
 

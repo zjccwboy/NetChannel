@@ -62,11 +62,6 @@ namespace NetChannel
         public IPEndPoint LocalEndPoint { get; set; }
 
         /// <summary>
-        /// 如果是服务端则是本地监听IP端口，要是客户端则是远程连接IP端口
-        /// </summary>
-        public IPEndPoint DefaultEndPoint { get; protected set; }
-
-        /// <summary>
         /// 接收包解析器
         /// </summary>
         protected PacketParser RecvParser;
