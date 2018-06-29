@@ -173,7 +173,7 @@ namespace NetChannel
                 //    LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"与服务端:{currentChannel.DefaultEndPoint}失去连接");
                 //    currentChannel.DisConnect();
                 //}
-                var timeSpan = now - currentChannel.LastSendHeartbeat;
+                var timeSpan = now - currentChannel.LastSendTime;
                 if (timeSpan > HeartbeatTime)
                 {
                     SendMessage(new Packet
@@ -188,7 +188,7 @@ namespace NetChannel
                 var channels = netService.Channels.Values;
                 foreach(var channel in channels)
                 {
-                    var timeSpan = now - channel.LastRecvHeartbeat;
+                    var timeSpan = now - channel.LastRecvTime;
                     if (timeSpan > HeartbeatTime * 2)
                     {
                         LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"客户端:{channel.RemoteEndPoint}连接超时，心跳检测断开，心跳时长{timeSpan}...");

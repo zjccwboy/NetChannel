@@ -104,6 +104,7 @@ namespace NetChannel
 
         public void HandleRecv(UdpReceiveResult recvResult)
         {
+            this.LastRecvTime = TimeUitls.Now();
             this.kcp.Input(recvResult.Buffer);
             while (true)
             {
@@ -162,7 +163,7 @@ namespace NetChannel
                 try
                 {
                     recvResult = await this.socketClient.ReceiveAsync();
-                    LastRecvHeartbeat = TimeUitls.Now();
+                    LastRecvTime = TimeUitls.Now();
                 }
                 catch (Exception e)
                 {
@@ -232,8 +233,8 @@ namespace NetChannel
 
         private void KcpStartSend()
         {
-            kcp.Update(this.LastSendHeartbeat);
-            this.LastSendHeartbeat = this.kcp.Check(this.LastSendHeartbeat);
+            kcp.Update(this.LastSendTime);
+            this.LastSendTime = this.kcp.Check(this.LastSendTime);
         }        
 
     }

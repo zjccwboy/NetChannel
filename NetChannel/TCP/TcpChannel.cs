@@ -127,7 +127,7 @@ namespace NetChannel
                     return;
                 }
 
-                LastSendHeartbeat = TimeUitls.Now();
+                LastSendTime = TimeUitls.Now();
                 var netStream = socketClient.GetStream();
 
                 if (netStream == null)
@@ -197,7 +197,7 @@ namespace NetChannel
                         {
                             break;
                         }
-                        LastRecvHeartbeat = TimeUitls.Now();
+                        LastRecvTime = TimeUitls.Now();
                         if (!packet.IsHeartbeat)
                         {
                             if (packet.IsRpc)

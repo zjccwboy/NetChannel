@@ -67,14 +67,14 @@ namespace NetChannel
         protected PacketParser RecvParser;
 
         /// <summary>
-        /// 最后接收心跳时间
+        /// 接收最后一个数据包时间
         /// </summary>
-        public uint LastRecvHeartbeat { get; set; } = TimeUitls.Now();
+        public uint LastRecvTime { get; set; } = TimeUitls.Now();
 
         /// <summary>
-        /// 最后发送心跳时间
+        /// 最后发送时间
         /// </summary>
-        public uint LastSendHeartbeat { get; set; } = TimeUitls.Now();
+        public uint LastSendTime { get; set; } = TimeUitls.Now();
 
         /// <summary>
         /// 接收回调事件
