@@ -9,6 +9,9 @@ namespace NetChannel
     /// </summary>
     public class Buffer
     {
+        /// <summary>
+        /// 缓冲区块大小
+        /// </summary>
         private int blockSize = 8192;
 
         /// <summary>

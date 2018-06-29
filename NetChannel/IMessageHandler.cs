@@ -7,15 +7,17 @@ namespace NetChannel
     public interface IMessageHandler
     {
         /// <summary>
-        /// Channel
+        /// 通讯管道对象
         /// </summary>
         ANetChannel Channel { get; set; }
+
         /// <summary>
-        /// NetService
+        /// 网络服务对象
         /// </summary>
         ANetService NetService { get; set; }
+
         /// <summary>
-        /// 处理接收消息
+        /// 接收消息处理回调接口，除了RPC以外的所有消息都会被回调到该接口中
         /// </summary>
         /// <param name="packet"></param>
         void DoReceive(Packet packet);

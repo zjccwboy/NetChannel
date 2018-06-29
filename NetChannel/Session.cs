@@ -6,13 +6,19 @@ using Common;
 
 namespace NetChannel
 {
-    public enum SessionType
+    /// <summary>
+    /// 服务类型
+    /// </summary>
+    public enum NetServiceType
     {
         None,
         Client,
         Server
     }
 
+    /// <summary>
+    /// 协议类型
+    /// </summary>
     public enum ProtocalType
     {
         Tcp,
@@ -30,7 +36,7 @@ namespace NetChannel
         private IPEndPoint endPoint;
         private ANetChannel currentChannel;
         private uint LastCheckTime;
-        private SessionType sessionType;
+        private NetServiceType sessionType;
         private ProtocalType protocalType;
 
         public Session(IPEndPoint endPoint, ProtocalType protocalType)
@@ -45,7 +51,7 @@ namespace NetChannel
         /// <param name="endPoint"></param>
         public async void Accept()
         {
-            sessionType = SessionType.Server;
+            sessionType = NetServiceType.Server;
             if(protocalType == ProtocalType.Tcp)
             {
                 netService = new TcpService(endPoint, this);
@@ -65,7 +71,7 @@ namespace NetChannel
         /// <returns></returns>
         public async Task<ANetChannel> Connect()
         {
-            sessionType = SessionType.Client;
+            sessionType = NetServiceType.Client;
             if (protocalType == ProtocalType.Tcp)
             {
                 netService = new TcpService(endPoint, this);
@@ -160,7 +166,7 @@ namespace NetChannel
                 return;
             }
 
-            if(sessionType == SessionType.Client)
+            if(sessionType == NetServiceType.Client)
             {
                 if(currentChannel == null)
                 {
@@ -186,7 +192,7 @@ namespace NetChannel
                     LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"发送心跳包到服务端:{currentChannel.RemoteEndPoint}...");
                 }
             }
-            else if(sessionType == SessionType.Server)
+            else if(sessionType == NetServiceType.Server)
             {
                 var channels = netService.Channels.Values;
                 foreach(var channel in channels)

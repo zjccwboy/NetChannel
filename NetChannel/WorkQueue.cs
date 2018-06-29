@@ -20,9 +20,19 @@ namespace NetChannel
     /// </summary>
     internal class SendTask
     {
+        /// <summary>
+        /// 通讯管道对象
+        /// </summary>
         public ANetChannel Channel { get; set; }
+
+        /// <summary>
+        /// 发送数据包
+        /// </summary>
         public Packet Packet { get; set; }
-        public DateTime CreateTime { get; private set; } = DateTime.Now;
+
+        /// <summary>
+        /// 将数据包写道发送缓冲区中
+        /// </summary>
         public void WriteToBuffer()
         {
             Channel.WriteSendBuffer(Packet);

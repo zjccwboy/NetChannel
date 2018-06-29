@@ -232,6 +232,9 @@ namespace NetChannel
             sendQueut.Enqueue(packet);
         }
 
+        /// <summary>
+        /// 断开连接
+        /// </summary>
         public override void DisConnect()
         {
             try

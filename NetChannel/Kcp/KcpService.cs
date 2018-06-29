@@ -1,11 +1,8 @@
 ﻿using Common;
 using System;
-using System.Collections.Generic;
 using System.Net;
 using System.Net.Sockets;
-using System.Text;
 using System.Threading.Tasks;
-using System.Linq;
 
 namespace NetChannel
 {
@@ -24,11 +21,11 @@ namespace NetChannel
         /// </summary>
         /// <param name="endPoint"></param>
         /// <param name="session"></param>
-        public KcpService(IPEndPoint endPoint, Session session, SessionType sessionType) : base(session)
+        public KcpService(IPEndPoint endPoint, Session session, NetServiceType sessionType) : base(session)
         {
             this.endPoint = endPoint;
             sendQueue = new WorkQueue(session);
-            if(sessionType == SessionType.Server)
+            if(sessionType == NetServiceType.Server)
             {
                 this.udpClient = new UdpClient(endPoint);
                 uint IOC_IN = 0x80000000;
@@ -36,7 +33,7 @@ namespace NetChannel
                 uint SIO_UDP_CONNRESET = IOC_IN | IOC_VENDOR | 12;
                 this.udpClient.Client.IOControl((int)SIO_UDP_CONNRESET, new[] { Convert.ToByte(false) }, null);
             }
-            else if(sessionType == SessionType.Client)
+            else if(sessionType == NetServiceType.Client)
             {
                 this.udpClient = new UdpClient(new IPEndPoint(IPAddress.Any, 0));
             }
