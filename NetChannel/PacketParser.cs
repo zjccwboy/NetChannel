@@ -112,7 +112,7 @@ namespace NetChannel
             }
             if (IsActorMessage)
             {
-                var snBytes = BitConverter.GetBytes((uint)IPAddress.HostToNetworkOrder(Convert.ToUInt32(ActorMessageId)));
+                var snBytes = BitConverter.GetBytes((uint)IPAddress.HostToNetworkOrder(Convert.ToInt32(ActorMessageId)));
                 if (IsRpc)
                 {
                     bytes[7] = snBytes[0];
@@ -313,7 +313,7 @@ namespace NetChannel
                                 Buffer.UpdateRead(ActorIdFlagSize - count);
                             }
                             readLength += ActorIdFlagSize;
-                            actorMessageId = (uint)IPAddress.NetworkToHostOrder(BitConverter.ToUInt32(headBytes, needSize));
+                            actorMessageId = (uint)IPAddress.NetworkToHostOrder(BitConverter.ToInt32(headBytes, needSize));
                             state = ParseState.Body;
                         }
                         break;

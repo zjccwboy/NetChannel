@@ -62,7 +62,7 @@ namespace NetChannel
             this.DefaultEndPoint = endPoint;
             this.LocalEndPoint = endPoint;
             socketClient = udpClient;
-            RecvParser = new PacketParser();            
+            RecvParser = new PacketParser();
         }
 
         public void InitKcp()

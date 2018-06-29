@@ -5,6 +5,7 @@ using System.Net;
 using System.Net.Sockets;
 using System.Text;
 using System.Threading.Tasks;
+using System.Linq;
 
 namespace NetChannel
 {
@@ -12,7 +13,8 @@ namespace NetChannel
     {
         private readonly IPEndPoint endPoint;
         private UdpClient udpClient;
-        private readonly PacketParser connectParser = new PacketParser(7);        
+        private readonly PacketParser connectParser = new PacketParser(7);
+        private KcpChannel currentChannel;
 
         /// <summary>
         /// 构造函数
@@ -66,24 +68,17 @@ namespace NetChannel
                     continue;
                 }
                 
-                // accept
-                uint conn = BitConverter.ToUInt32(recvResult.Buffer, 0);
-                if (this.Channels.TryGetValue(conn, out ANetChannel channel))
+                if(recvResult.Buffer.Length == 3 || recvResult.Buffer.Length == 7)
                 {
-                    var kcpChannel = channel as KcpChannel;
-                    kcpChannel.HandleRecv(recvResult);
-                }
-                else
-                {
-                    //丢弃非法数据包
-                    if(recvResult.Buffer.Length != 7)
-                    {
-                        continue;
-                    }
-
                     //客户端握手处理
                     connectParser.WriteBuffer(recvResult.Buffer, 0, recvResult.Buffer.Length);
                     var packet = connectParser.ReadBuffer();
+                    if (!packet.IsSuccess)
+                    {
+                        //丢弃非法数据包
+                        connectParser.Buffer.UpdateRead(connectParser.Buffer.DataSize);
+                        continue;
+                    }
                     if (packet.KcpProtocal == KcpNetProtocal.SYN)
                     {
                         HandleSYN(recvResult.RemoteEndPoint);
@@ -92,9 +87,18 @@ namespace NetChannel
                     {
                         HandleACK(packet, recvResult.RemoteEndPoint);
                     }
-                    else if (packet.KcpProtocal == KcpNetProtocal.FIN)
+                    else if(packet.KcpProtocal == KcpNetProtocal.FIN)
                     {
                         HandleFIN(packet);
+                    }
+                }
+                else
+                {
+                    uint connectConv = BitConverter.ToUInt32(recvResult.Buffer, 0);
+                    if (this.Channels.TryGetValue(connectConv, out ANetChannel channel))
+                    {
+                        var kcpChannel = channel as KcpChannel;
+                        kcpChannel.HandleRecv(recvResult);
                     }
                 }
             }
@@ -102,19 +106,34 @@ namespace NetChannel
 
         public override async Task<ANetChannel> ConnectAsync()
         {
+            if(udpClient != null)
+            {
+                return currentChannel;
+            }
+
+            this.udpClient = new UdpClient(new IPEndPoint(IPAddress.Any, 0));
+            uint IOC_IN = 0x80000000;
+            uint IOC_VENDOR = 0x18000000;
+            uint SIO_UDP_CONNRESET = IOC_IN | IOC_VENDOR | 12;
+            this.udpClient.Client.IOControl((int)SIO_UDP_CONNRESET, new[] { Convert.ToByte(false) }, null);
+
             ConnectSender.SendSYN(this.udpClient, endPoint);
+            StartRecv();
+
             var connected = false;
-            tcs = new TaskCompletionSource<KcpChannel>();
+
             var cancellationToken = new System.Threading.CancellationTokenSource(3000);
-            tcs.TrySetCanceled(cancellationToken.Token);
             var registration = cancellationToken.Token.Register(() =>
             {
                 if (!connected)
                 {
                     var kcpChannel = new KcpChannel(endPoint, this.udpClient, this);
+                    tcs.TrySetResult(kcpChannel);
                 }
             });
+            tcs = new TaskCompletionSource<KcpChannel>();
             var channel = await tcs.Task;
+            currentChannel = channel;
             connected = channel.Connected;
             if (!channel.Connected)
             {
@@ -130,15 +149,19 @@ namespace NetChannel
             {
                 conv = KcpConvIdCreator.CreateId();
             }
-            var channel = new KcpChannel(endPoint, this.udpClient, this, conv);
+            var channel = new KcpChannel(this.endPoint, this.udpClient, this, conv);
+            channel.RemoteEndPoint = endPoint;
             channel.OnConnect = DoAccept;
+            channel.InitKcp();
+            channel.OnConnect?.Invoke(channel);
             ConnectSender.SendACK(this.udpClient, endPoint, channel);
         }
 
         private TaskCompletionSource<KcpChannel> tcs;
         private void HandleACK(Packet packet, IPEndPoint endPoint)
         {
-            var channel = new KcpChannel(endPoint, this.udpClient, this, packet.ActorMessageId);
+            var channel = new KcpChannel(this.endPoint, this.udpClient, this, packet.ActorMessageId);
+            channel.RemoteEndPoint = endPoint;
             channel.OnConnect = DoConnect;
             channel.InitKcp();
             channel.OnConnect?.Invoke(channel);
@@ -146,7 +169,10 @@ namespace NetChannel
             {
                 var connTcs = tcs;
                 tcs = null;
-                connTcs.SetResult(channel);
+                if (!connTcs.Task.IsCompleted)
+                {
+                    connTcs.SetResult(channel);
+                }
             }
         }
 
@@ -186,7 +212,6 @@ namespace NetChannel
                 channel.Connected = true;
                 AddChannel(channel);
                 AddHandler(channel);
-                //channel.StartRecv();
                 LogRecord.Log(LogLevel.Info, "DoAccept", $"连接服务端:{channel.RemoteEndPoint}成功...");
             }
             catch (Exception e)

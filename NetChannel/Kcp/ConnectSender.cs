@@ -36,7 +36,7 @@ namespace NetChannel
         {
             var finPacket = new Packet
             {
-                KcpProtocal = KcpNetProtocal.FIN,
+                KcpProtocal = KcpNetProtocal.ACK,
                 IsActorMessage = true,
                 ActorMessageId = channel.Id,
             };

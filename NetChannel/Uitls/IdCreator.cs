@@ -26,11 +26,11 @@ namespace NetChannel
 
     public class KcpConvIdCreator
     {
-        private static long id = 100000;
+        private static int id = 100000;
         public static uint CreateId()
         {
             Interlocked.Increment(ref id);
-            Interlocked.CompareExchange(ref id, 100000, uint.MaxValue);
+            Interlocked.CompareExchange(ref id, 100000, int.MaxValue);
             return (uint)id;
         }
     }
