@@ -1,6 +1,9 @@
 ﻿
 namespace NetChannel
 {
+    /// <summary>
+    /// 消息处理接口，应该所有的消息类都应该从该接口派生实现
+    /// </summary>
     public interface IMessageHandler
     {
         /// <summary>

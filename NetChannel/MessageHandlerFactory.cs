@@ -3,6 +3,9 @@ using System.Collections.Generic;
 
 namespace NetChannel
 {
+    /// <summary>
+    /// 消息处理类工厂
+    /// </summary>
     public class MessageHandlerFactory
     {
         private static List<Type> types;
@@ -11,6 +14,12 @@ namespace NetChannel
             Load();
         }
 
+        /// <summary>
+        /// 创建消息处理类
+        /// </summary>
+        /// <param name="channel">通讯管道对象</param>
+        /// <param name="netService">网络服务对象</param>
+        /// <returns></returns>
         public static IEnumerable<IMessageHandler> CreateHandlers(ANetChannel channel, ANetService netService)
         {
             var handlers = new List<IMessageHandler>();
@@ -25,6 +34,9 @@ namespace NetChannel
             return handlers;
         }
 
+        /// <summary>
+        /// 加载全部消息处理类类型到内存中
+        /// </summary>
         private static void Load()
         {
             var assemblys = AppDomain.CurrentDomain.GetAssemblies();

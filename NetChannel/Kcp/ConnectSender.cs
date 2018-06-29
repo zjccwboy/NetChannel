@@ -6,6 +6,9 @@ using System.Text;
 
 namespace NetChannel
 {
+    /// <summary>
+    /// 连接发送辅助类
+    /// </summary>
     public class ConnectSender
     {
         /// <summary>

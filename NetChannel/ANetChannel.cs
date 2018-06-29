@@ -7,18 +7,30 @@ using System.Threading.Tasks;
 namespace NetChannel
 {
     /// <summary>
-    /// 网络通道抽象类
+    /// 通讯管道抽象类
     /// </summary>
     public abstract class ANetChannel
     {
+        /// <summary>
+        /// 通讯管道Id标识
+        /// </summary>
         public uint Id { get; protected set; }
 
+        /// <summary>
+        /// 构造函数
+        /// </summary>
+        /// <param name="netService">网络通讯服务对象</param>
         public ANetChannel(ANetService netService)
         {
             this.netService = netService;
             Id = ChannelIdCreator.CreateId();
         }
 
+        /// <summary>
+        /// 构造函数
+        /// </summary>
+        /// <param name="netService">网络通讯服务对象</param>
+        /// <param name="conv">KCP连接确认号Conv</param>
         public ANetChannel(ANetService netService, uint conv)
         {
             this.netService = netService;
@@ -26,6 +38,9 @@ namespace NetChannel
         }
 
         private int rpcId;
+        /// <summary>
+        /// RPC请求Id生成器
+        /// </summary>
         public int RpcId
         {
             get
@@ -125,11 +140,11 @@ namespace NetChannel
         public abstract void DisConnect();
 
         /// <summary>
-        /// 插入请求
+        /// 添加一个发送数据包到发送缓冲区队列中
         /// </summary>
         /// <param name="packet"></param>
         /// <param name="recvAction"></param>
-        public abstract void AddRequest(Packet packet, Action<Packet> recvAction);
+        public abstract void AddPacket(Packet packet, Action<Packet> recvAction);
 
         /// <summary>
         /// 把发送数据包写到缓冲区

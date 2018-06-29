@@ -12,12 +12,12 @@ namespace NetChannel
         private int blockSize = 8192;
 
         /// <summary>
-        /// 缓存队列
+        /// 缓冲区队列队列
         /// </summary>
         private readonly Queue<byte[]> bufferQueue = new Queue<byte[]>();
 
         /// <summary>
-        /// 用于复用的缓存队列
+        /// 用于复用的缓冲区队列
         /// </summary>
         private readonly Queue<byte[]> bufferCache = new Queue<byte[]>();
 
@@ -37,6 +37,9 @@ namespace NetChannel
         private int readOffset;
         private int writeOffset;
 
+        /// <summary>
+        /// 指向缓冲区队列中第一个缓冲区块有效的数组下标位置
+        /// </summary>
         public int FirstOffset
         {
             get
@@ -45,6 +48,10 @@ namespace NetChannel
             }
         }
 
+        /// <summary>
+        /// 更新读的的缓冲区字节数
+        /// </summary>
+        /// <param name="addValue"></param>
         public void UpdateRead(int addValue)
         {
             readOffset += addValue;
@@ -61,6 +68,9 @@ namespace NetChannel
             }
         }
 
+        /// <summary>
+        /// 指向缓冲区队列中最后一个缓冲区块有效的数组下标位置
+        /// </summary>
         public int LastOffset
         {
             get
@@ -69,6 +79,10 @@ namespace NetChannel
             }
         }
 
+        /// <summary>
+        /// 更新写的的缓冲区字节数
+        /// </summary>
+        /// <param name="addValue"></param>
         public void UpdateWrite(int addValue)
         {
             writeOffset += addValue;
@@ -85,6 +99,9 @@ namespace NetChannel
             }
         }
 
+        /// <summary>
+        /// 缓冲区队列中第一个缓冲区块有效字节数
+        /// </summary>
         public int FirstCount
         {
             get
@@ -100,6 +117,9 @@ namespace NetChannel
             }
         }
 
+        /// <summary>
+        /// 缓冲区队列中最后一个缓冲区块有效字节数
+        /// </summary>
         public int LastCount
         {
             get
@@ -108,6 +128,9 @@ namespace NetChannel
             }
         }
 
+        /// <summary>
+        /// 当前缓冲区中有效的字节数
+        /// </summary>
         public int DataSize
         {
             get
@@ -129,11 +152,21 @@ namespace NetChannel
             }
         }
 
+        /// <summary>
+        /// 写入一个字节数组到缓冲区中，该方法不需要调用UpdateWrite方法更新缓冲区字节数
+        /// </summary>
+        /// <param name="bytes"></param>
         public void Write(byte[] bytes)
         {
             Write(bytes, 0, bytes.Length);
         }
 
+        /// <summary>
+        /// 写入一个字节数组指定的字节数到缓冲区中，该方法不需要调用UpdateWrite方法更新缓冲区字节数
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <param name="index"></param>
+        /// <param name="length"></param>
         public void Write(byte[] bytes, int index, int length)
         {
             while(length > 0)
@@ -146,6 +179,9 @@ namespace NetChannel
             }
         }
 
+        /// <summary>
+        /// 指向缓冲区队列最后一个缓冲区块指针
+        /// </summary>
         public byte[] Last
         {
             get
@@ -154,6 +190,9 @@ namespace NetChannel
             }
         }
 
+        /// <summary>
+        /// 指向缓冲区队列最后第一个缓冲区块指针
+        /// </summary>
         public byte[] First
         {
             get
@@ -162,6 +201,9 @@ namespace NetChannel
             }
         }
 
+        /// <summary>
+        /// 清空缓冲区
+        /// </summary>
         public void Flush()
         {
             readOffset = 0;

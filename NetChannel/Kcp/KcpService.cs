@@ -9,6 +9,9 @@ using System.Linq;
 
 namespace NetChannel
 {
+    /// <summary>
+    /// KCP通讯服务
+    /// </summary>
     public class KcpService : ANetService
     {
         private UdpClient udpClient;
@@ -41,6 +44,9 @@ namespace NetChannel
         }
 
         private readonly WorkQueue sendQueue;
+        /// <summary>
+        /// 合并数据包发送队列
+        /// </summary>
         internal override WorkQueue SendQueue
         {
             get
@@ -49,11 +55,19 @@ namespace NetChannel
             }
         }
 
+        /// <summary>
+        /// 开始监听并接受连接请求
+        /// </summary>
+        /// <returns></returns>
         public override Task AcceptAsync()
         {
             return Task.CompletedTask;
         }
 
+        /// <summary>
+        /// 发送连接请求
+        /// </summary>
+        /// <returns></returns>
         public override async Task<ANetChannel> ConnectAsync()
         {
             ConnectSender.SendSYN(this.udpClient, endPoint);
@@ -78,6 +92,9 @@ namespace NetChannel
             return channel;
         }
 
+        /// <summary>
+        /// 开始接收数据包
+        /// </summary>
         private async void StartRecv()
         {
             while (true)
@@ -102,7 +119,7 @@ namespace NetChannel
                     if (!packet.IsSuccess)
                     {
                         //丢弃非法数据包
-                        connectParser.Buffer.UpdateRead(connectParser.Buffer.DataSize);
+                        connectParser.Buffer.Flush();
                         continue;
                     }
                     if (packet.KcpProtocal == KcpNetProtocal.SYN)
@@ -130,6 +147,10 @@ namespace NetChannel
             }
         }
 
+        /// <summary>
+        /// 处理客户端SYN连接请求
+        /// </summary>
+        /// <param name="recvResult"></param>
         private void HandleSYN(UdpReceiveResult recvResult)
         {
             var conv = KcpConvIdCreator.CreateId();
@@ -138,17 +159,22 @@ namespace NetChannel
                 conv = KcpConvIdCreator.CreateId();
             }
             var channel = new KcpChannel(recvResult, this.udpClient, this, conv);
-            channel.OnConnect = DoAccept;
+            channel.OnConnect = HandleAccept;
             channel.InitKcp();
             channel.OnConnect?.Invoke(channel);
             ConnectSender.SendACK(this.udpClient, channel.RemoteEndPoint, channel);
         }
 
         private TaskCompletionSource<KcpChannel> tcs;
+        /// <summary>
+        /// 处理连接请求ACK应答
+        /// </summary>
+        /// <param name="packet"></param>
+        /// <param name="recvResult"></param>
         private void HandleACK(Packet packet, UdpReceiveResult recvResult)
         {
             var channel = new KcpChannel(recvResult,this.udpClient, this, packet.ActorMessageId);
-            channel.OnConnect = DoConnect;
+            channel.OnConnect = HandleConnect;
             channel.InitKcp();
             channel.OnConnect?.Invoke(channel);
             if (tcs != null)
@@ -162,6 +188,10 @@ namespace NetChannel
             }
         }
 
+        /// <summary>
+        /// 处理连接断开FIN请求
+        /// </summary>
+        /// <param name="packet"></param>
         private void HandleFIN(Packet packet)
         {
             if (this.Channels.TryGetValue(packet.ActorMessageId, out ANetChannel channel))
@@ -174,35 +204,43 @@ namespace NetChannel
             }
         }
 
-        private void DoAccept(ANetChannel channel)
+        /// <summary>
+        /// 处理接受连接成功回调
+        /// </summary>
+        /// <param name="channel"></param>
+        private void HandleAccept(ANetChannel channel)
         {
             try
             {
-                channel.OnDisConnect = DoDisConnectOnServer;
+                channel.OnDisConnect = HandleDisConnectOnServer;
                 channel.Connected = true;
                 AddChannel(channel);
                 AddHandler(channel);
-                LogRecord.Log(LogLevel.Info, "DoAccept", $"接受客户端:{channel.RemoteEndPoint}连接成功...");
+                LogRecord.Log(LogLevel.Info, "HandleAccept", $"接受客户端:{channel.RemoteEndPoint}连接成功...");
             }
             catch (Exception e)
             {
-                LogRecord.Log(LogLevel.Warn, "DoAccept", e);
+                LogRecord.Log(LogLevel.Warn, "HandleAccept", e);
             }
         }
 
-        protected void DoConnect(ANetChannel channel)
+        /// <summary>
+        /// 处理连接成功回调
+        /// </summary>
+        /// <param name="channel"></param>
+        private void HandleConnect(ANetChannel channel)
         {
             try
             {
-                channel.OnDisConnect = DoDisConnectOnClient;
+                channel.OnDisConnect = HandleDisConnectOnClient;
                 channel.Connected = true;
                 AddChannel(channel);
                 AddHandler(channel);
-                LogRecord.Log(LogLevel.Info, "DoAccept", $"连接服务端:{channel.RemoteEndPoint}成功...");
+                LogRecord.Log(LogLevel.Info, "HandleConnect", $"连接服务端:{channel.RemoteEndPoint}成功...");
             }
             catch (Exception e)
             {
-                LogRecord.Log(LogLevel.Warn, "DoConnect", e);
+                LogRecord.Log(LogLevel.Warn, "HandleConnect", e);
             }
         }
     }

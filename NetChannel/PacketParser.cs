@@ -60,6 +60,10 @@ namespace NetChannel
         /// </summary>
         public byte[] Data;
 
+        /// <summary>
+        /// 获取包头的字节数组
+        /// </summary>
+        /// <returns></returns>
         public byte[] GetHeadBytes()
         {            
             var bodySize = 0;
@@ -131,11 +135,21 @@ namespace NetChannel
             return bytes;
         }
 
+        /// <summary>
+        /// 反序列化缓冲区包体字节数组并返回反序列化对象
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <returns></returns>
         public T GetData<T>() where T : class, new()
         {
             return Data.ConvertToObject<T>();
         }
 
+        /// <summary>
+        /// 把一个对象序列化成一个byte数组存到包体缓冲区中
+        /// </summary>
+        /// <typeparam name="T"></typeparam>
+        /// <param name="data"></param>
         public void SetData<T>(T data) where T:class, new()
         {
             Data = data.ConvertToBytes();
@@ -399,12 +413,11 @@ namespace NetChannel
             bodyBytes = null;
         }
 
-        public void Clear()
-        {
-            Flush();
-            Buffer.Flush();
-        }
-
+        private Packet FailedPacket = new Packet();
+        /// <summary>
+        /// 从缓冲区中读数据包
+        /// </summary>
+        /// <returns></returns>
         public Packet ReadBuffer()
         {
             finish = false;
@@ -428,14 +441,24 @@ namespace NetChannel
                     return packet;
                 }
             }
-            return new Packet();
+            return FailedPacket;
         }
 
+        /// <summary>
+        /// 写一个字节数组到缓冲区中
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <param name="offset"></param>
+        /// <param name="length"></param>
         public void WriteBuffer(byte[] bytes, int offset, int length)
         {
             Buffer.Write(bytes, offset, length);
         }
 
+        /// <summary>
+        /// 写一个包到缓冲区中
+        /// </summary>
+        /// <param name="packet"></param>
         public void WriteBuffer(Packet packet)
         {
             Buffer.Write(packet.GetHeadBytes());
@@ -446,6 +469,11 @@ namespace NetChannel
         }
 
         private List<byte[]> packetByte = new List<byte[]> { new byte[0], new byte[0] };
+        /// <summary>
+        /// 获取一个包的字节数组
+        /// </summary>
+        /// <param name="packet"></param>
+        /// <returns></returns>
         public List<byte[]> GetPacketBytes(Packet packet)
         {
             packetByte[0] = packet.GetHeadBytes();

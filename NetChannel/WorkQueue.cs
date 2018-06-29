@@ -42,22 +42,33 @@ namespace NetChannel
         private AutoResetEvent enqueueResetEvent = new AutoResetEvent(false);
         private readonly Session session;
 
+        /// <summary>
+        /// 构造函数
+        /// </summary>
+        /// <param name="session">通讯会话接口类对象</param>
         public WorkQueue(Session session)
         {
             this.session = session;
         }
 
+        /// <summary>
+        /// 开始启动发送线程
+        /// </summary>
         public void Start()
         {
             if(thread == null)
             {
-                thread = new Thread(DoSend);
+                thread = new Thread(HandleSend);
                 thread.IsBackground = true;
                 thread.Start();
             }
         }
 
         private volatile int writeCount;
+        /// <summary>
+        /// 插入一个数据包到发送队列中
+        /// </summary>
+        /// <param name="sendTask"></param>
         public void Enqueue(SendTask sendTask)
         {
             var size = sendTask.Packet.Data == null ? 0 : sendTask.Packet.Data.Length + PacketParser.HeadMaxSize;
@@ -80,7 +91,10 @@ namespace NetChannel
             doSendResetEvent.Set();
         }
 
-        private async void DoSend()
+        /// <summary>
+        /// 处理数据发送回调函数
+        /// </summary>
+        private async void HandleSend()
         {
             try
             {
@@ -147,10 +161,13 @@ namespace NetChannel
             }
             catch(Exception e)
             {
-                LogRecord.Log(LogLevel.Warn, "DoSend", e);
+                LogRecord.Log(LogLevel.Warn, "HandleSend", e);
             }
         }
 
+        /// <summary>
+        /// 切换队列
+        /// </summary>
         private void Swap()
         {
             if (state == QueueState.First)

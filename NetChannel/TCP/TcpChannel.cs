@@ -1,15 +1,13 @@
 ﻿using System;
 using System.Threading.Tasks;
 using System.Net.Sockets;
-using System.Threading;
-using System.Collections.Concurrent;
 using System.Net;
 using Common;
 
 namespace NetChannel
 {
     /// <summary>
-    /// TCP通道类
+    /// TCP通讯管道
     /// </summary>
     public class TcpChannel : ANetChannel
     {
@@ -27,7 +25,7 @@ namespace NetChannel
         /// 构造函数,Connect
         /// </summary>
         /// <param name="endPoint">Ip/端口</param>
-        /// <param name="netService">网络服务</param>
+        /// <param name="netService">通讯网络服务对象</param>
         public TcpChannel(IPEndPoint endPoint, ANetService netService) : base(netService)
         {
             this.RemoteEndPoint = endPoint as IPEndPoint;
@@ -38,9 +36,9 @@ namespace NetChannel
         /// <summary>
         /// 构造函数,Accept
         /// </summary>
-        /// <param name="endPoint">Ip/端口</param>
-        /// <param name="tcpClient">Ip/端口</param>
-        /// <param name="netService">网络服务</param>
+        /// <param name="endPoint">IP/端口</param>
+        /// <param name="tcpClient">TCP socket类</param>
+        /// <param name="netService">通讯网络服务对象</param>
         public TcpChannel(IPEndPoint endPoint, TcpClient tcpClient, ANetService netService) : base(netService)
         {
             this.LocalEndPoint = endPoint as IPEndPoint;
@@ -148,17 +146,17 @@ namespace NetChannel
             catch (Exception e)
             {
                 LogRecord.Log(LogLevel.Warn, "StartSend", e);
-                DoError();
+                HandleError();
             }
         }
 
         /// <summary>
-        /// 插入RPC
+        /// 添加一个发送数据包到发送缓冲区队列中
         /// </summary>
         /// <param name="packet">发送数据包</param>
         /// <param name="recvAction">请求回调方法</param>
         /// <returns></returns>
-        public override void AddRequest(Packet packet, Action<Packet> recvAction)
+        public override void AddPacket(Packet packet, Action<Packet> recvAction)
         {
             RpcDictionarys.TryAdd(packet.RpcId, recvAction);
         }
@@ -186,7 +184,7 @@ namespace NetChannel
                     var count = await netStream.ReadAsync(RecvParser.Buffer.Last, RecvParser.Buffer.LastOffset, RecvParser.Buffer.LastCount);
                     if (count <= 0)
                     {
-                        DoError();
+                        HandleError();
                         return;
                     }
                     RecvParser.Buffer.UpdateWrite(count);
@@ -227,16 +225,22 @@ namespace NetChannel
             catch (Exception e)
             {
                 LogRecord.Log(LogLevel.Warn, "StartRecv", e);
-                DoError();
+                HandleError();
             }
         }
 
-        private void DoError()
+        /// <summary>
+        /// 处理错误
+        /// </summary>
+        private void HandleError()
         {
             DisConnect();
             OnError?.Invoke(this);
         }
 
+        /// <summary>
+        /// 断开连接
+        /// </summary>
         public override void DisConnect()
         {
             try

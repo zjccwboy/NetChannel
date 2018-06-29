@@ -19,6 +19,9 @@ namespace NetChannel
         Kcp,
     }
 
+    /// <summary>
+    /// 通讯会话接口类
+    /// </summary>
     public class Session
     {
         public const int HeartbeatTime = 1000 * 20;
@@ -110,7 +113,7 @@ namespace NetChannel
 
             packet.IsRpc = true;
             packet.RpcId = currentChannel.RpcId;
-            currentChannel.AddRequest(packet, notificationAction);
+            currentChannel.AddPacket(packet, notificationAction);
             netService.SendQueue.Enqueue(new SendTask
             {
                 Channel = currentChannel,
