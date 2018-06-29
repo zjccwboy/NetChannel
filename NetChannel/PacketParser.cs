@@ -187,18 +187,28 @@ namespace NetChannel
     /// </summary>
     public class PacketParser
     {
-
+        /// <summary>
+        /// 构造函数
+        /// </summary>
         public PacketParser()
         {
             Buffer = new Buffer();
         }
 
+        /// <summary>
+        /// 构造函数
+        /// </summary>
+        /// <param name="blockSize">指定缓冲区块大小</param>
         public PacketParser(int blockSize)
         {
             Buffer = new Buffer(blockSize);
         }
 
+        /// <summary>
+        /// 缓冲区对象
+        /// </summary>
         internal readonly Buffer Buffer;
+
         private byte[] bodyBytes = new byte[0];
         private byte[] headBytes = new byte[HeadMaxSize];
         private int rpcId;
@@ -217,14 +227,38 @@ namespace NetChannel
         private bool isOk;
         private bool finish;
 
+        /// <summary>
+        /// 包头协议中表示数据包大小的第一个协议字节数，2个字节
+        /// </summary>
         public static readonly int PacketFlagSize = sizeof(short);
+        /// <summary>
+        /// 包头协议中标志位的字节数，1个字节
+        /// </summary>
         public static readonly int BitFlagSize = sizeof(byte);
+        /// <summary>
+        /// 包头协议中RPC请求Id的字节数，4个字节
+        /// </summary>
         public static readonly int RpcFlagSize = sizeof(int);
+        /// <summary>
+        /// 包头协议中Actor消息Id字节数，4个字节
+        /// </summary>
         public static readonly int ActorIdFlagSize = sizeof(int);
+        /// <summary>
+        /// 最小包头字节数
+        /// </summary>
         public static readonly int HeadMinSize = PacketFlagSize + BitFlagSize;
+        /// <summary>
+        /// 最大包头字节数
+        /// </summary>
         public static readonly int HeadMaxSize = PacketFlagSize + BitFlagSize + RpcFlagSize + ActorIdFlagSize;
+        /// <summary>
+        /// 表示允许发送的最大单个数据包字节数
+        /// </summary>
         public static readonly int BodyMaxSize = short.MaxValue - HeadMaxSize;
 
+        /// <summary>
+        /// 解析数据包核心函数
+        /// </summary>
         private void Parse()
         {
             isOk = false;
@@ -385,6 +419,10 @@ namespace NetChannel
             }
         }
 
+        /// <summary>
+        /// 设置解析标志位结果
+        /// </summary>
+        /// <param name="flagByte"></param>
         private void SetBitFlag(byte flagByte)
         {
             isRpc = Convert.ToBoolean(flagByte & 1);
@@ -397,6 +435,9 @@ namespace NetChannel
             headSize = isActorMessage ? headSize + ActorIdFlagSize : headSize;
         }
 
+        /// <summary>
+        /// 重置解析器
+        /// </summary>
         private void Flush()
         {
             rpcId = 0;
