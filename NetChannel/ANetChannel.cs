@@ -11,12 +11,18 @@ namespace NetChannel
     /// </summary>
     public abstract class ANetChannel
     {
-        public int Id { get; protected set; }
+        public uint Id { get; protected set; }
 
         public ANetChannel(ANetService netService)
         {
             this.netService = netService;
-            Id = IdCreator.CreateId();
+            Id = ChannelIdCreator.CreateId();
+        }
+
+        public ANetChannel(ANetService netService, uint conv)
+        {
+            this.netService = netService;
+            Id = conv;
         }
 
         private int rpcId;

@@ -41,9 +41,9 @@ namespace NetChannel
         internal byte KcpProtocal;
 
         /// <summary>
-        /// 是否是KCP包
+        /// 是否时Actor
         /// </summary>
-        public bool IsKcpConnect;
+        public bool IsActorMessage;
 
         /// <summary>
         /// Rpc请求标识
@@ -51,9 +51,9 @@ namespace NetChannel
         public int RpcId;
 
         /// <summary>
-        /// KCP连接标识
+        /// Actor消息Id
         /// </summary>
-        public int KcpConnectSN;
+        public uint ActorMessageId;
 
         /// <summary>
         /// 数据包
@@ -72,7 +72,7 @@ namespace NetChannel
                 }
             }
             int headSize = IsRpc ? PacketParser.HeadMinSize + PacketParser.RpcFlagSize : PacketParser.HeadMinSize;
-            headSize = IsKcpConnect ? headSize + PacketParser.KcpIdFlagSize : headSize;
+            headSize = IsActorMessage ? headSize + PacketParser.ActorIdFlagSize : headSize;
             int packetSize = headSize + bodySize;
             var sizeBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(Convert.ToInt16(packetSize)));
             var bytes = new byte[headSize];
@@ -98,7 +98,7 @@ namespace NetChannel
             {
                 bytes[2] |= (byte)(KcpProtocal << 4);
             }
-            if (IsKcpConnect)
+            if (IsActorMessage)
             {
                 bytes[2] |= 1 << 6;
             }
@@ -110,9 +110,9 @@ namespace NetChannel
                 bytes[5] = rpcBytes[2];
                 bytes[6] = rpcBytes[3];
             }
-            if (IsKcpConnect)
+            if (IsActorMessage)
             {
-                var snBytes = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(Convert.ToInt32(KcpConnectSN)));
+                var snBytes = BitConverter.GetBytes((uint)IPAddress.HostToNetworkOrder(Convert.ToUInt32(ActorMessageId)));
                 if (IsRpc)
                 {
                     bytes[7] = snBytes[0];
@@ -160,7 +160,7 @@ namespace NetChannel
         /// <summary>
         /// KCP连接标识
         /// </summary>
-        KcpSN,
+        Actor,
 
         /// <summary>
         /// 包体
@@ -188,13 +188,13 @@ namespace NetChannel
         private byte[] bodyBytes = new byte[0];
         private byte[] headBytes = new byte[HeadMaxSize];
         private int rpcId;
-        private int kcpConnectSN;
+        private uint actorMessageId;
         private bool isRpc;
         private bool isCompress;
         private bool isHeartbeat;
         private bool isEncrypt;
         private byte kcpProtocal;
-        private bool isKcpConnect;
+        private bool isActorMessage;
 
         private int readLength = 0;
         private int packetSize = 0;
@@ -206,9 +206,9 @@ namespace NetChannel
         public static readonly int PacketFlagSize = sizeof(short);
         public static readonly int BitFlagSize = sizeof(byte);
         public static readonly int RpcFlagSize = sizeof(int);
-        public static readonly int KcpIdFlagSize = sizeof(int);
+        public static readonly int ActorIdFlagSize = sizeof(int);
         public static readonly int HeadMinSize = PacketFlagSize + BitFlagSize;
-        public static readonly int HeadMaxSize = PacketFlagSize + BitFlagSize + RpcFlagSize + KcpIdFlagSize;
+        public static readonly int HeadMaxSize = PacketFlagSize + BitFlagSize + RpcFlagSize + ActorIdFlagSize;
         public static readonly int BodyMaxSize = short.MaxValue - HeadMaxSize;
 
         private void Parse()
@@ -256,9 +256,9 @@ namespace NetChannel
                             }
                             else
                             {
-                                if (isKcpConnect)
+                                if (isActorMessage)
                                 {
-                                    state = ParseState.KcpSN;
+                                    state = ParseState.Actor;
                                 }
                                 else
                                 {
@@ -285,9 +285,9 @@ namespace NetChannel
                             }
                             readLength += RpcFlagSize;
                             rpcId = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(headBytes, HeadMinSize));
-                            if (isKcpConnect)
+                            if (isActorMessage)
                             {
-                                state = ParseState.KcpSN;
+                                state = ParseState.Actor;
                             }
                             else
                             {
@@ -295,25 +295,25 @@ namespace NetChannel
                             }
                         }
                         break;
-                    case ParseState.KcpSN:
+                    case ParseState.Actor:
                         var needSize = isRpc ? HeadMinSize + RpcFlagSize : HeadMinSize;
-                        if (Buffer.DataSize >= KcpIdFlagSize && readLength == needSize)
+                        if (Buffer.DataSize >= ActorIdFlagSize && readLength == needSize)
                         {
-                            if (Buffer.FirstCount >= KcpIdFlagSize)
+                            if (Buffer.FirstCount >= ActorIdFlagSize)
                             {
-                                Array.Copy(Buffer.First, Buffer.FirstOffset, headBytes, needSize, KcpIdFlagSize);
-                                Buffer.UpdateRead(KcpIdFlagSize);
+                                Array.Copy(Buffer.First, Buffer.FirstOffset, headBytes, needSize, ActorIdFlagSize);
+                                Buffer.UpdateRead(ActorIdFlagSize);
                             }
                             else
                             {
                                 var count = Buffer.FirstCount;
                                 Array.Copy(Buffer.First, Buffer.FirstOffset, headBytes, needSize, count);
                                 Buffer.UpdateRead(count);
-                                Array.Copy(Buffer.First, Buffer.FirstOffset, headBytes, needSize + count, KcpIdFlagSize - count);
-                                Buffer.UpdateRead(KcpIdFlagSize - count);
+                                Array.Copy(Buffer.First, Buffer.FirstOffset, headBytes, needSize + count, ActorIdFlagSize - count);
+                                Buffer.UpdateRead(ActorIdFlagSize - count);
                             }
-                            readLength += KcpIdFlagSize;
-                            kcpConnectSN = IPAddress.NetworkToHostOrder(BitConverter.ToInt32(headBytes, needSize));
+                            readLength += ActorIdFlagSize;
+                            actorMessageId = (uint)IPAddress.NetworkToHostOrder(BitConverter.ToUInt32(headBytes, needSize));
                             state = ParseState.Body;
                         }
                         break;
@@ -378,21 +378,21 @@ namespace NetChannel
             isCompress = Convert.ToBoolean(flagByte >> 2 & 1);
             isEncrypt = Convert.ToBoolean(flagByte >> 3 & 1);
             kcpProtocal = (byte)(flagByte >> 4 & 3);
-            isKcpConnect = Convert.ToBoolean(flagByte >> 6 & 1);
+            isActorMessage = Convert.ToBoolean(flagByte >> 6 & 1);
             headSize = isRpc ? HeadMinSize + RpcFlagSize : HeadMinSize;
-            headSize = isKcpConnect ? headSize + KcpIdFlagSize : headSize;
+            headSize = isActorMessage ? headSize + ActorIdFlagSize : headSize;
         }
 
         private void Flush()
         {
             rpcId = 0;
-            kcpConnectSN = 0;
+            actorMessageId = 0;
             isRpc = false;
             isEncrypt = false;
             isCompress = false;
             isHeartbeat = false;
             kcpProtocal = 0;
-            isKcpConnect = false;
+            isActorMessage = false;
             readLength = 0;
             packetSize = 0;
             headSize = 0;
@@ -421,7 +421,7 @@ namespace NetChannel
                         IsCompress = isCompress,
                         IsHeartbeat = isHeartbeat,
                         KcpProtocal = kcpProtocal,
-                        KcpConnectSN = kcpConnectSN,
+                        ActorMessageId = actorMessageId,
                         Data = bodyBytes,
                     };
                     Flush();

@@ -83,23 +83,6 @@ namespace NetChannel
             }
         }
 
-        protected void DoConnect(ANetChannel channel)
-        {
-            try
-            {
-                channel.OnDisConnect = DoDisConnectOnClient;
-                channel.Connected = true;
-                AddChannel(channel);
-                AddHandler(channel);
-                channel.StartRecv();
-                LogRecord.Log(LogLevel.Info, "DoAccept", $"连接服务端:{channel.RemoteEndPoint}成功...");
-            }
-            catch (Exception e)
-            {
-                LogRecord.Log(LogLevel.Warn, "DoConnect", e);
-            }
-        }
-
         protected void DoDisConnectOnServer(ANetChannel channel)
         {
             try

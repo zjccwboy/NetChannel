@@ -27,33 +27,27 @@ namespace NetChannel
 
     public class KcpChannel : ANetChannel
     {
-        public int ConnectSN;
         private UdpClient socketClient;
-        public uint remoteConn;
-        private readonly Kcp kcp;
+        private Kcp kcp;
         private readonly byte[] cacheBytes = new byte[1400];
         private ConcurrentQueue<Packet> sendQueut = new ConcurrentQueue<Packet>();
 
-        private static int synPacketSize = PacketParser.HeadMinSize;
-        private static int ackPacketSize = PacketParser.HeadMinSize + sizeof(int);
-        private static int finPacketSize = PacketParser.HeadMinSize + sizeof(int);
-
-        private readonly static PacketParser ConnectPacketParser = new PacketParser(11);
+        //private static int synPacketSize = PacketParser.HeadMinSize;
+        //private static int ackPacketSize = PacketParser.HeadMinSize + sizeof(int);
+        //private static int finPacketSize = PacketParser.HeadMinSize + sizeof(int);
 
 
         /// <summary>
         /// 构造函数,Connect
         /// </summary>
         /// <param name="endPoint">Ip/端口</param>
+        /// <param name="udpClient">Ip/端口</param>
         /// <param name="netService">网络服务</param>
-        public KcpChannel(IPEndPoint endPoint, ANetService netService) : base(netService)
+        public KcpChannel(IPEndPoint endPoint, UdpClient udpClient, ANetService netService) : base(netService)
         {
             this.DefaultEndPoint = endPoint;
             this.RemoteEndPoint = endPoint as IPEndPoint;
             RecvParser = new PacketParser();
-            this.kcp = new Kcp(this.remoteConn, this.Output);
-            kcp.SetMtu(512);
-            kcp.NoDelay(1, 10, 2, 1);  //fast
         }
 
         /// <summary>
@@ -62,13 +56,18 @@ namespace NetChannel
         /// <param name="endPoint">Ip/端口</param>
         /// <param name="udpClient">Ip/端口</param>
         /// <param name="netService">网络服务</param>
-        public KcpChannel(IPEndPoint endPoint, UdpClient udpClient, ANetService netService) : base(netService)
+        /// <param name="connectConv">网络连接Conv</param>
+        public KcpChannel(IPEndPoint endPoint, UdpClient udpClient, ANetService netService, uint connectConv) : base(netService, connectConv)
         {
             this.DefaultEndPoint = endPoint;
             this.LocalEndPoint = endPoint;
             socketClient = udpClient;
-            RecvParser = new PacketParser();
-            this.kcp = new Kcp(this.remoteConn, this.Output);
+            RecvParser = new PacketParser();            
+        }
+
+        public void InitKcp()
+        {
+            this.kcp = new Kcp(this.Id, this.Output);
             kcp.SetMtu(512);
             kcp.NoDelay(1, 10, 2, 1);  //fast
         }
@@ -86,9 +85,9 @@ namespace NetChannel
 
         public override async Task<bool> ReConnecting()
         {
-            DisConnect();
             return await StartConnecting();
         }
+
 
         /// <summary>
         /// 模拟TCP三次握手连接服务端
@@ -98,67 +97,7 @@ namespace NetChannel
         {
             try
             {
-                this.socketClient = this.socketClient ?? new UdpClient();
-                uint IOC_IN = 0x80000000;
-                uint IOC_VENDOR = 0x18000000;
-                uint SIO_UDP_CONNRESET = IOC_IN | IOC_VENDOR | 12;
-                socketClient.Client.IOControl((int)SIO_UDP_CONNRESET, new[] { Convert.ToByte(false) }, null);
-
-                //发送SYN包
-                var synPacket = new Packet
-                {
-                    KcpProtocal = KcpNetProtocal.SYN,
-                };
-
-                //握手包不要经过KCP发送
-                var synBytes = synPacket.GetHeadBytes();
-                socketClient.Send(synBytes, synBytes.Length, this.RemoteEndPoint);
-
-                //接收服务端ACK包与SN
-                UdpReceiveResult receiveResult;
-                receiveResult = await socketClient.ReceiveAsync();
-                if(receiveResult.Buffer.Length != ackPacketSize)
-                {
-                    throw new SocketException();
-                }
-                RecvParser.WriteBuffer(receiveResult.Buffer, 0, ackPacketSize);
-                var ackPacket = RecvParser.ReadBuffer();
-                if (!ackPacket.IsSuccess)
-                {
-                    return false;
-                }
-
-                //完成三次握手
-                if (ackPacket.KcpProtocal == KcpNetProtocal.ACK)
-                {
-                    //服务端无应答，连接失败
-                    if (ackPacket.Data == null)
-                    {
-                        return false;
-                    }
-
-                    ConnectSN = ackPacket.KcpConnectSN;
-                    if (ConnectSN == 0)
-                    {
-                        return false;
-                    }
-
-                    //发送ACK+SN包告诉服务端连接成功
-                    var snAckPacket = new Packet
-                    {
-                        KcpProtocal = KcpNetProtocal.ACK,
-                        KcpConnectSN = ConnectSN,
-                        Data = BitConverter.GetBytes(IPAddress.HostToNetworkOrder(Convert.ToInt32(ConnectSN))),
-                    };
-
-                    //握手包不要经过KCP发送
-                    var ackBytes = snAckPacket.GetHeadBytes();
-                    socketClient.Send(ackBytes, ackBytes.Length, this.RemoteEndPoint);
-
-                    Connected = true;
-                    OnConnect?.Invoke(this);
-                    return true;
-                }
+                ConnectSender.SendSYN(this.socketClient, this.RemoteEndPoint);
                 return false;
             }
             catch (Exception e)
@@ -167,6 +106,55 @@ namespace NetChannel
                 return false;
             }
         }
+
+        public void HandleRecv(UdpReceiveResult recvResult)
+        {
+            this.kcp.Input(recvResult.Buffer);
+            while (true)
+            {
+                int n = kcp.PeekSize();
+                if (n == 0)
+                {
+                    break;
+                }
+
+                int count = this.kcp.Recv(cacheBytes);
+                if (count <= 0)
+                {
+                    break;
+                }
+
+                RecvParser.WriteBuffer(cacheBytes, 0, count);
+                while (true)
+                {
+                    var packet = RecvParser.ReadBuffer();
+                    if (!packet.IsSuccess)
+                    {
+                        break;
+                    }
+                    if (!packet.IsHeartbeat)
+                    {
+                        if (packet.IsRpc)
+                        {
+                            if (RpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
+                            {
+                                //执行RPC请求回调
+                                action(packet);
+                            }
+                            else
+                            {
+                                OnReceive?.Invoke(packet);
+                            }
+                        }
+                        else
+                        {
+                            OnReceive?.Invoke(packet);
+                        }
+                    }
+                }
+            }
+        }
+
         public override async void StartRecv()
         {
             while (true)
@@ -175,82 +163,14 @@ namespace NetChannel
                 try
                 {
                     recvResult = await this.socketClient.ReceiveAsync();
-
-                    //客户端握手处理
-                    ConnectPacketParser.WriteBuffer(recvResult.Buffer, 0, recvResult.Buffer.Length);
-                    var packet = ConnectPacketParser.ReadBuffer();
-                    if (packet.IsSuccess)
-                    {
-                        if (packet.KcpProtocal == KcpNetProtocal.SYN)
-                        {
-                            HandleSYN(packet, recvResult.RemoteEndPoint);
-                            continue;
-                        }
-                        else if (packet.KcpProtocal == KcpNetProtocal.ACK)
-                        {
-                            HandleACK(packet, recvResult.RemoteEndPoint);
-                            continue;
-                        }
-                        else if (packet.KcpProtocal == KcpNetProtocal.FIN)
-                        {
-                            HandleFIN(packet);
-                            continue;
-                        }
-                    }
+                    LastRecvHeartbeat = TimeUitls.Now();                    
                 }
                 catch (Exception e)
                 {
                     LogRecord.Log(LogLevel.Warn, "StartRecv", e);
                     continue;
                 }
-
-                this.kcp.Input(recvResult.Buffer);
-                while (true)
-                {
-                    int n = kcp.PeekSize();
-                    if (n == 0)
-                    {
-                        break;
-                    }
-
-                    int count = this.kcp.Recv(cacheBytes);
-                    if (count <= 0)
-                    {
-                        break;
-                    }
-
-                    RecvParser.WriteBuffer(cacheBytes, 0, count);
-                    while (true)
-                    {
-                        var packet = RecvParser.ReadBuffer();
-
-                        if (!netService.Channels.TryGetValue(packet.KcpConnectSN, out ANetChannel channel))
-                        {
-                            RecvParser.Buffer.UpdateRead(RecvParser.Buffer.DataSize);//丢弃非法数据包
-                            break;
-                        }
-                        channel.LastRecvHeartbeat = TimeUitls.Now();
-                        if (!packet.IsHeartbeat)
-                        {
-                            if (packet.IsRpc)
-                            {
-                                if (RpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
-                                {
-                                    //执行RPC请求回调
-                                    action(packet);
-                                }
-                                else
-                                {
-                                    channel.OnReceive?.Invoke(packet);
-                                }
-                            }
-                            else
-                            {
-                                channel.OnReceive?.Invoke(packet);
-                            }
-                        }
-                    }
-                }
+                HandleRecv(recvResult);
             }
         }
 
@@ -282,8 +202,6 @@ namespace NetChannel
             try
             {
                 Connected = false;
-                //发送FIN包
-                SendFIN(this.RemoteEndPoint, ConnectSN);
                 OnDisConnect?.Invoke(this);
             }
             catch { }
@@ -296,8 +214,6 @@ namespace NetChannel
 
         private void Send(Packet packet)
         {
-            packet.IsKcpConnect = true;
-            packet.KcpConnectSN = ConnectSN;
             var bytes = RecvParser.GetPacketBytes(packet);
             SendToKcp(bytes);
             KcpStartSend();
@@ -318,59 +234,7 @@ namespace NetChannel
         {
             kcp.Update(this.LastSendHeartbeat);
             this.LastSendHeartbeat = this.kcp.Check(this.LastSendHeartbeat);
-        }
-
-        private void SendFIN(IPEndPoint endPoint, int kcpConnectSN)
-        {
-            var finPacket = new Packet
-            {
-                KcpProtocal = KcpNetProtocal.FIN,
-                IsKcpConnect = true,
-                KcpConnectSN = kcpConnectSN,
-            };
-
-            //握手包不经过KCP发送
-            var bytes = finPacket.GetHeadBytes();
-            socketClient.Send(bytes, bytes.Length, endPoint);
-        }
-
-        private void HandleSYN(Packet packet, IPEndPoint endPoint)
-        {
-            //应答客户端SYN连接请求
-            packet.KcpConnectSN = KcpConnectSN.CreateSN();
-            while (netService.Channels.ContainsKey(packet.KcpConnectSN))
-            {
-                packet.KcpConnectSN = KcpConnectSN.CreateSN();
-            }
-            packet.KcpProtocal = KcpNetProtocal.ACK;
-            packet.IsKcpConnect = true;
-
-            //握手包不经过KCP发送
-            var bytes = packet.GetHeadBytes();
-            socketClient.Send(bytes, bytes.Length, endPoint);
-        }
-
-        private void HandleACK(Packet packet, IPEndPoint endPoint)
-        {
-            var channel = new KcpChannel(this.RemoteEndPoint, this.socketClient, this.netService);
-            channel.ConnectSN = packet.KcpConnectSN;
-            channel.RemoteEndPoint = endPoint;
-            //KCP直接使用ConnectSN做ChannelId
-            channel.Id = ConnectSN;
-            OnConnect?.Invoke(channel);
-        }
-
-        private void HandleFIN(Packet packet)
-        {
-            if (netService.Channels.TryGetValue(packet.KcpConnectSN, out ANetChannel channel))
-            {
-                if (channel.Connected)
-                {
-                    channel.Connected = false;
-                    OnDisConnect?.Invoke(channel);
-                }
-            }
-        }
+        }        
 
     }
 }
