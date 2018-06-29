@@ -24,12 +24,19 @@ namespace NetChannel
         /// </summary>
         private readonly Queue<byte[]> bufferCache = new Queue<byte[]>();
 
+        /// <summary>
+        /// 构造函数，默认分配缓冲区块大小8192字节
+        /// </summary>
         public Buffer()
         {
             //默认分配一块缓冲区
             bufferQueue.Enqueue(new byte[blockSize]);
         }
 
+        /// <summary>
+        /// 构造函数
+        /// </summary>
+        /// <param name="blockSize">指定缓冲区块大小</param>
         public Buffer(int blockSize)
         {
             this.blockSize = blockSize;
