@@ -53,57 +53,6 @@ namespace NetChannel
             return Task.CompletedTask;
         }
 
-        private async void StartRecv()
-        {
-            while (true)
-            {
-                UdpReceiveResult recvResult;
-                try
-                {
-                    recvResult = await this.udpClient.ReceiveAsync();
-                }
-                catch (Exception e)
-                {
-                    LogRecord.Log(LogLevel.Warn, "StartRecv", e);
-                    continue;
-                }
-                
-                if(recvResult.Buffer.Length == 3 || recvResult.Buffer.Length == 7)
-                {
-                    //客户端握手处理
-                    connectParser.WriteBuffer(recvResult.Buffer, 0, recvResult.Buffer.Length);
-                    var packet = connectParser.ReadBuffer();
-                    if (!packet.IsSuccess)
-                    {
-                        //丢弃非法数据包
-                        connectParser.Buffer.UpdateRead(connectParser.Buffer.DataSize);
-                        continue;
-                    }
-                    if (packet.KcpProtocal == KcpNetProtocal.SYN)
-                    {
-                        HandleSYN(recvResult.RemoteEndPoint);
-                    }
-                    else if(packet.KcpProtocal == KcpNetProtocal.ACK)
-                    {
-                        HandleACK(packet, recvResult.RemoteEndPoint);
-                    }
-                    else if(packet.KcpProtocal == KcpNetProtocal.FIN)
-                    {
-                        HandleFIN(packet);
-                    }
-                }
-                else
-                {
-                    uint connectConv = BitConverter.ToUInt32(recvResult.Buffer, 0);
-                    if (this.Channels.TryGetValue(connectConv, out ANetChannel channel))
-                    {
-                        var kcpChannel = channel as KcpChannel;
-                        kcpChannel.HandleRecv(recvResult);
-                    }
-                }
-            }
-        }
-
         public override async Task<ANetChannel> ConnectAsync()
         {
             if(udpClient != null)
@@ -121,16 +70,15 @@ namespace NetChannel
             StartRecv();
 
             var connected = false;
-
-            var cancellationToken = new System.Threading.CancellationTokenSource(3000);
-            var registration = cancellationToken.Token.Register(() =>
-            {
-                if (!connected)
-                {
-                    var kcpChannel = new KcpChannel(endPoint, this.udpClient, this);
-                    tcs.TrySetResult(kcpChannel);
-                }
-            });
+            //var cancellationToken = new System.Threading.CancellationTokenSource(3000);
+            //var registration = cancellationToken.Token.Register(() =>
+            //{
+            //    if (!connected)
+            //    {
+            //        var kcpChannel = new KcpChannel(endPoint, this.udpClient, this);
+            //        tcs.TrySetResult(kcpChannel);
+            //    }
+            //});
             tcs = new TaskCompletionSource<KcpChannel>();
             var channel = await tcs.Task;
             currentChannel = channel;
@@ -140,6 +88,57 @@ namespace NetChannel
                 await channel.ReConnecting();
             }
             return channel;
+        }
+
+        private async void StartRecv()
+        {
+            while (true)
+            {
+                UdpReceiveResult recvResult;
+                try
+                {
+                    recvResult = await this.udpClient.ReceiveAsync();
+                }
+                catch (Exception e)
+                {
+                    LogRecord.Log(LogLevel.Warn, "StartRecv", e);
+                    continue;
+                }
+
+                if (recvResult.Buffer.Length == 3 || recvResult.Buffer.Length == 7)
+                {
+                    //客户端握手处理
+                    connectParser.WriteBuffer(recvResult.Buffer, 0, recvResult.Buffer.Length);
+                    var packet = connectParser.ReadBuffer();
+                    if (!packet.IsSuccess)
+                    {
+                        //丢弃非法数据包
+                        connectParser.Buffer.UpdateRead(connectParser.Buffer.DataSize);
+                        continue;
+                    }
+                    if (packet.KcpProtocal == KcpNetProtocal.SYN)
+                    {
+                        HandleSYN(recvResult.RemoteEndPoint);
+                    }
+                    else if (packet.KcpProtocal == KcpNetProtocal.ACK)
+                    {
+                        HandleACK(packet, recvResult.RemoteEndPoint);
+                    }
+                    else if (packet.KcpProtocal == KcpNetProtocal.FIN)
+                    {
+                        HandleFIN(packet);
+                    }
+                }
+                else
+                {
+                    uint connectConv = BitConverter.ToUInt32(recvResult.Buffer, 0);
+                    if (this.Channels.TryGetValue(connectConv, out ANetChannel channel))
+                    {
+                        var kcpChannel = channel as KcpChannel;
+                        kcpChannel.HandleRecv(recvResult);
+                    }
+                }
+            }
         }
 
         private void HandleSYN(IPEndPoint endPoint)

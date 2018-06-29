@@ -32,11 +32,6 @@ namespace NetChannel
         private readonly byte[] cacheBytes = new byte[1400];
         private ConcurrentQueue<Packet> sendQueut = new ConcurrentQueue<Packet>();
 
-        //private static int synPacketSize = PacketParser.HeadMinSize;
-        //private static int ackPacketSize = PacketParser.HeadMinSize + sizeof(int);
-        //private static int finPacketSize = PacketParser.HeadMinSize + sizeof(int);
-
-
         /// <summary>
         /// 构造函数,Connect
         /// </summary>
@@ -163,7 +158,7 @@ namespace NetChannel
                 try
                 {
                     recvResult = await this.socketClient.ReceiveAsync();
-                    LastRecvHeartbeat = TimeUitls.Now();                    
+                    LastRecvHeartbeat = TimeUitls.Now();
                 }
                 catch (Exception e)
                 {
