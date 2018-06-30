@@ -670,7 +670,7 @@ namespace NetChannel
 
             //var seg = new Segment(0);
             var seg = flushSegment;
-            flushSegment.flush();
+            seg.flush();
             seg.conv = conv;
             seg.cmd = IKCP_CMD_ACK;
             seg.wnd = (UInt32)wnd_unused();
