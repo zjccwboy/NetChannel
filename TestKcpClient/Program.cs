@@ -27,11 +27,15 @@ namespace TestKcpClient
             var stopwatch = new Stopwatch();
             stopwatch.Start();
             var send = new Packet { Data = BitConverter.GetBytes(999) };
-            session.Subscribe(send, (packet) =>
+
+            for(var i = 0; i < 100; i++)
             {
-                var data = BitConverter.ToInt32(packet.Data, 0);
-                Console.WriteLine($"解包出错:{data}");
-            });
+                session.Subscribe(send, (packet) =>
+                {
+                    var data = BitConverter.ToInt32(packet.Data, 0);
+                    Console.WriteLine($"收到数据包:{data}");
+                });
+            }
 
 
             //while (true)

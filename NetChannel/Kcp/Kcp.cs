@@ -163,6 +163,21 @@ namespace NetChannel
             internal UInt32 xmit;
             internal byte[] data;
 
+            internal void flush()
+            {
+                conv = 0;
+                cmd = 0;
+                frg = 0;
+                wnd = 0;
+                ts = 0;
+                sn = 0;
+                una = 0;
+                resendts = 0;
+                rto = 0;
+                fastack = 0;
+                xmit = 0;
+            }
+
             internal Segment(int size)
             {
                 this.data = new byte[size];
@@ -640,6 +655,8 @@ namespace NetChannel
             return 0;
         }
 
+
+        private Segment flushSegment = new Segment(0);
         // flush pending data
         private void flush()
         {
@@ -651,7 +668,9 @@ namespace NetChannel
             if (0 == updated)
                 return;
 
-            var seg = new Segment(0);
+            //var seg = new Segment(0);
+            var seg = flushSegment;
+            flushSegment.flush();
             seg.conv = conv;
             seg.cmd = IKCP_CMD_ACK;
             seg.wnd = (UInt32)wnd_unused();
