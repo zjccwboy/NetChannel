@@ -17,11 +17,6 @@ namespace NetChannel
         private TcpClient socketClient;
 
         /// <summary>
-        /// 发送包解析器
-        /// </summary>
-        private PacketParser SendParser;
-
-        /// <summary>
         /// 构造函数,Connect
         /// </summary>
         /// <param name="endPoint">Ip/端口</param>

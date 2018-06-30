@@ -49,6 +49,7 @@ namespace NetChannel
             this.LocalEndPoint = udpClient.Client.LocalEndPoint as IPEndPoint;
             this.RemoteEndPoint = recvResult.RemoteEndPoint;
             RecvParser = new PacketParser();
+            SendParser = new PacketParser();
         }
 
         /// <summary>
@@ -64,6 +65,7 @@ namespace NetChannel
             this.RemoteEndPoint = recvResult.RemoteEndPoint;
             socketClient = udpClient;
             RecvParser = new PacketParser();
+            SendParser = new PacketParser();
         }
 
         /// <summary>
@@ -207,19 +209,48 @@ namespace NetChannel
         /// <returns></returns>
         public override Task StartSend()
         {
+
             if (Connected)
             {
-                while (!this.sendQueut.IsEmpty)
+                //while (!this.sendQueut.IsEmpty)
+                //{
+                //    this.LastSendTime = TimeUitls.Now();
+                //    Packet packet;
+                //    if (this.sendQueut.TryDequeue(out packet))
+                //    {
+                //        this.SendParser.WriteBuffer(packet);
+                //    }
+                //}
+
+                while (this.SendParser.Buffer.DataSize > 0)
                 {
-                    Packet packet;
-                    if(this.sendQueut.TryDequeue(out packet))
+                    var offset = this.SendParser.Buffer.FirstOffset;
+                    var length = this.SendParser.Buffer.FirstCount;
+                    length = length > 488 ? 488 : length;
+                    var count = kcp.Send(this.SendParser.Buffer.First, offset, length);
+                    if (count > 0)
                     {
-                        var bytes = RecvParser.GetPacketBytes(packet);
-                        SendToKcp(bytes);
+                        this.SendParser.Buffer.UpdateRead(count);
                         SetKcpSendTime();
                     }
                 }
+                SetKcpSendTime();
             }
+
+            //if (Connected)
+            //{
+            //    while (!this.sendQueut.IsEmpty)
+            //    {
+            //        this.LastSendTime = TimeUitls.Now();
+            //        Packet packet;
+            //        if (this.sendQueut.TryDequeue(out packet))
+            //        {
+            //            var bytes = RecvParser.GetPacketBytes(packet);
+            //            SendToKcp(bytes);
+            //        }
+            //    }
+            //    SetKcpSendTime();
+            //}
             return Task.CompletedTask;
         }
 
@@ -229,7 +260,7 @@ namespace NetChannel
         /// <param name="packet"></param>
         public override void WriteSendBuffer(Packet packet)
         {
-            sendQueut.Enqueue(packet);
+            this.SendParser.WriteBuffer(packet);
         }
 
         /// <summary>
@@ -252,7 +283,7 @@ namespace NetChannel
         /// <param name="count"></param>
         private void Output(byte[] bytes, int count)
         {
-            LogRecord.Log(LogLevel.Warn, "Output", $"发送数据到:{this.RemoteEndPoint}");
+            //LogRecord.Log(LogLevel.Warn, "Output", $"发送数据到:{this.RemoteEndPoint}");
             socketClient.Send(bytes, count, this.RemoteEndPoint);
         }
 
@@ -271,13 +302,16 @@ namespace NetChannel
             }
         }
 
+        private uint sendIntervalTime = TimeUitls.Now();
+
         /// <summary>
         /// 设置KCP重传时间
         /// </summary>
         private void SetKcpSendTime()
         {
-            kcp.Update(this.LastSendTime);
-            this.LastSendTime = this.kcp.Check(this.LastSendTime);
+            sendIntervalTime = TimeUitls.Now();
+            kcp.Update(this.sendIntervalTime);
+            this.sendIntervalTime = this.kcp.Check(this.sendIntervalTime);
         }        
 
     }

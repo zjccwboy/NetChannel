@@ -100,7 +100,7 @@ namespace NetChannel
                 try
                 {
                     recvResult = await this.udpClient.ReceiveAsync();
-                    LogRecord.Log(LogLevel.Error, "StartRecv", $"收到远程电脑:{recvResult.RemoteEndPoint}");
+                    //LogRecord.Log(LogLevel.Error, "StartRecv", $"收到远程电脑:{recvResult.RemoteEndPoint}");
                 }
                 catch (Exception e)
                 {

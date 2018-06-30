@@ -353,6 +353,47 @@ namespace NetChannel
         }
 
         // user/upper level send, returns below zero for error
+        public int Send(byte[] buffer, int offset, int length)
+        {
+            length += offset;
+
+            if (0 == length)
+                return -1;
+
+            var count = 0;
+
+            if (length < mss)
+                count = 1;
+            else
+                count = (int)(length + mss - 1) / (int)mss;
+
+            if (255 < count)
+                return -2;
+
+            if (0 == count)
+                count = 1;
+
+            //var offset = 0;
+            var position = offset;
+            for (var i = 0; i < count; i++)
+            {
+                var size = 0;
+                if (length - position > mss)
+                    size = (int)mss;
+                else
+                    size = length - position;
+
+                var seg = new Segment(size);
+                System.Buffer.BlockCopy(buffer, position, seg.data, 0, size);
+                position += size;
+                seg.frg = (UInt32)(count - i - 1);
+                snd_queue = append(snd_queue, seg);
+            }
+
+            return position - offset;
+        }
+
+        // user/upper level send, returns below zero for error
         public int Send(byte[] buffer)
         {
             if (0 == buffer.Length)

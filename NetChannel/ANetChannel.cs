@@ -17,6 +17,16 @@ namespace NetChannel
         public uint Id { get; protected set; }
 
         /// <summary>
+        /// 接收包缓冲区解析器
+        /// </summary>
+        protected PacketParser RecvParser;
+
+        /// <summary>
+        /// 发送包缓冲区解析器
+        /// </summary>
+        protected PacketParser SendParser;
+
+        /// <summary>
         /// 构造函数
         /// </summary>
         /// <param name="netService">网络通讯服务对象</param>
@@ -75,11 +85,6 @@ namespace NetChannel
         /// 本地IP端口
         /// </summary>
         public IPEndPoint LocalEndPoint { get; set; }
-
-        /// <summary>
-        /// 接收包解析器
-        /// </summary>
-        protected PacketParser RecvParser;
 
         /// <summary>
         /// 接收最后一个数据包时间
