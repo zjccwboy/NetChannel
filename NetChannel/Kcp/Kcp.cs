@@ -83,7 +83,7 @@ namespace NetChannel
         public static byte[] slice(byte[] p, int start, int stop)
         {
             var bytes = new byte[stop - start];
-            Array.Copy(p, start, bytes, 0, bytes.Length);
+            System.Buffer.BlockCopy(p, start, bytes, 0, bytes.Length);
             return bytes;
         }
 
@@ -103,7 +103,7 @@ namespace NetChannel
         public static byte[] append(byte[] p, byte c)
         {
             var bytes = new byte[p.Length + 1];
-            Array.Copy(p, bytes, p.Length);
+            System.Buffer.BlockCopy(p, 0, bytes, 0, p.Length);
             bytes[p.Length] = c;
             return bytes;
         }
@@ -318,7 +318,7 @@ namespace NetChannel
             var n = 0;
             foreach (var seg in rcv_queue)
             {
-                Array.Copy(seg.data, 0, buffer, n, seg.data.Length);
+                System.Buffer.BlockCopy(seg.data, 0, buffer, n, seg.data.Length);
                 n += seg.data.Length;
                 count++;
                 if (0 == seg.frg)
@@ -382,7 +382,7 @@ namespace NetChannel
                     size = buffer.Length - offset;
 
                 var seg = new Segment(size);
-                Array.Copy(buffer, offset, seg.data, 0, size);
+                System.Buffer.BlockCopy(buffer, offset, seg.data, 0, size);
                 offset += size;
                 seg.frg = (UInt32)(count - i - 1);
                 snd_queue = append(snd_queue, seg);
@@ -597,7 +597,7 @@ namespace NetChannel
                             seg.una = una;
 
                             if (length > 0)
-                                Array.Copy(data, offset, seg.data, 0, length);
+                                System.Buffer.BlockCopy(data, offset, seg.data, 0, (int)length);
 
                             parse_data(seg);
                         }
@@ -823,7 +823,7 @@ namespace NetChannel
                     offset += segment.encode(buffer, offset);
                     if (segment.data.Length > 0)
                     {
-                        Array.Copy(segment.data, 0, buffer, offset, segment.data.Length);
+                        System.Buffer.BlockCopy(segment.data, 0, buffer, offset, segment.data.Length);
                         offset += segment.data.Length;
                     }
 

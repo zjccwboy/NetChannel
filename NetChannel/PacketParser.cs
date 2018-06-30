@@ -192,7 +192,7 @@ namespace NetChannel
         /// </summary>
         public PacketParser()
         {
-            Buffer = new Buffer();
+            Buffer = new BufferQueue();
         }
 
         /// <summary>
@@ -201,13 +201,13 @@ namespace NetChannel
         /// <param name="blockSize">指定缓冲区块大小</param>
         public PacketParser(int blockSize)
         {
-            Buffer = new Buffer(blockSize);
+            Buffer = new BufferQueue(blockSize);
         }
 
         /// <summary>
         /// 缓冲区对象
         /// </summary>
-        internal readonly Buffer Buffer;
+        internal readonly BufferQueue Buffer;
 
         private byte[] bodyBytes = new byte[0];
         private byte[] headBytes = new byte[HeadMaxSize];
@@ -276,15 +276,16 @@ namespace NetChannel
                         {
                             if (Buffer.FirstCount >= PacketFlagSize)
                             {
-                                Array.Copy(Buffer.First, Buffer.FirstOffset, headBytes, 0, PacketFlagSize);
+
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, headBytes, 0, PacketFlagSize);
                                 Buffer.UpdateRead(PacketFlagSize);
                             }
                             else
                             {
                                 var count = Buffer.FirstCount;
-                                Array.Copy(Buffer.First, Buffer.FirstOffset, headBytes, 0, count);
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, headBytes, 0, count);
                                 Buffer.UpdateRead(count);
-                                Array.Copy(Buffer.First, Buffer.FirstOffset, headBytes, count, PacketFlagSize - count);
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, headBytes, count, PacketFlagSize - count);
                                 Buffer.UpdateRead(PacketFlagSize - count);
                             }
                             readLength += PacketFlagSize;
@@ -293,7 +294,7 @@ namespace NetChannel
                         }
                         if (Buffer.DataSize >= BitFlagSize && readLength == PacketFlagSize)//读取标志位
                         {
-                            Array.Copy(Buffer.First, Buffer.FirstOffset, headBytes, PacketFlagSize, BitFlagSize);
+                            System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, headBytes, PacketFlagSize, BitFlagSize);
                             Buffer.UpdateRead(BitFlagSize);
                             readLength += BitFlagSize;
                             SetBitFlag(headBytes[PacketFlagSize]);
@@ -320,15 +321,15 @@ namespace NetChannel
                         {
                             if (Buffer.FirstCount >= RpcFlagSize)
                             {
-                                Array.Copy(Buffer.First, Buffer.FirstOffset, headBytes, HeadMinSize, RpcFlagSize);
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, headBytes, HeadMinSize, RpcFlagSize);
                                 Buffer.UpdateRead(RpcFlagSize);
                             }
                             else
                             {
                                 var count = Buffer.FirstCount;
-                                Array.Copy(Buffer.First, Buffer.FirstOffset, headBytes, HeadMinSize, count);
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, headBytes, HeadMinSize, count);
                                 Buffer.UpdateRead(count);
-                                Array.Copy(Buffer.First, Buffer.FirstOffset, headBytes, HeadMinSize + count, RpcFlagSize - count);
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, headBytes, HeadMinSize + count, RpcFlagSize - count);
                                 Buffer.UpdateRead(RpcFlagSize - count);
                             }
                             readLength += RpcFlagSize;
@@ -349,15 +350,15 @@ namespace NetChannel
                         {
                             if (Buffer.FirstCount >= ActorIdFlagSize)
                             {
-                                Array.Copy(Buffer.First, Buffer.FirstOffset, headBytes, needSize, ActorIdFlagSize);
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, headBytes, needSize, ActorIdFlagSize);
                                 Buffer.UpdateRead(ActorIdFlagSize);
                             }
                             else
                             {
                                 var count = Buffer.FirstCount;
-                                Array.Copy(Buffer.First, Buffer.FirstOffset, headBytes, needSize, count);
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, headBytes, needSize, count);
                                 Buffer.UpdateRead(count);
-                                Array.Copy(Buffer.First, Buffer.FirstOffset, headBytes, needSize + count, ActorIdFlagSize - count);
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, headBytes, needSize + count, ActorIdFlagSize - count);
                                 Buffer.UpdateRead(ActorIdFlagSize - count);
                             }
                             readLength += ActorIdFlagSize;
@@ -371,19 +372,19 @@ namespace NetChannel
                         {
                             if (Buffer.FirstCount >= needSize)
                             {
-                                Array.Copy(Buffer.First, Buffer.FirstOffset, bodyBytes, readLength - headSize, needSize);
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, bodyBytes, readLength - headSize, needSize);
                                 Buffer.UpdateRead(needSize);
                                 readLength += needSize;
                             }
                             else
                             {
                                 var count = Buffer.FirstCount;
-                                Array.Copy(Buffer.First, Buffer.FirstOffset, bodyBytes, readLength - headSize, count);
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, bodyBytes, readLength - headSize, count);
                                 Buffer.UpdateRead(count);
                                 readLength += count;
                                 needSize -= count;
                                 count = needSize > Buffer.FirstCount ? Buffer.FirstCount : needSize;
-                                Array.Copy(Buffer.First, Buffer.FirstOffset, bodyBytes, readLength - headSize, count);
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, bodyBytes, readLength - headSize, count);
                                 Buffer.UpdateRead(count);
                                 readLength += count;
                             }

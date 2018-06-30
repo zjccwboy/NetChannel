@@ -7,7 +7,7 @@ namespace NetChannel
     /// <summary>
     /// 接收发送数据缓冲区
     /// </summary>
-    public class Buffer
+    public class BufferQueue
     {
         /// <summary>
         /// 缓冲区块大小
@@ -27,7 +27,7 @@ namespace NetChannel
         /// <summary>
         /// 构造函数，默认分配缓冲区块大小8192字节
         /// </summary>
-        public Buffer()
+        public BufferQueue()
         {
             //默认分配一块缓冲区
             bufferQueue.Enqueue(new byte[blockSize]);
@@ -37,7 +37,7 @@ namespace NetChannel
         /// 构造函数
         /// </summary>
         /// <param name="blockSize">指定缓冲区块大小</param>
-        public Buffer(int blockSize)
+        public BufferQueue(int blockSize)
         {
             this.blockSize = blockSize;
             //默认分配一块缓冲区
@@ -182,7 +182,7 @@ namespace NetChannel
             while(length > 0)
             {
                 var count = length > LastCount ? LastCount : length;
-                Array.Copy(bytes, index, Last, LastOffset, count);
+                System.Buffer.BlockCopy(bytes, index, Last, LastOffset, count);
                 index += count;
                 length -= count;
                 UpdateWrite(count);
