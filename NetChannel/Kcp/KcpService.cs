@@ -92,7 +92,7 @@ namespace NetChannel
         /// <summary>
         /// 开始接收数据包
         /// </summary>
-        private async void StartRecv()
+        public async void StartRecv()
         {
             while (true)
             {
@@ -100,7 +100,6 @@ namespace NetChannel
                 try
                 {
                     recvResult = await this.udpClient.ReceiveAsync();
-                    //LogRecord.Log(LogLevel.Error, "StartRecv", $"收到远程电脑:{recvResult.RemoteEndPoint}");
                 }
                 catch (Exception e)
                 {
@@ -235,6 +234,7 @@ namespace NetChannel
                 channel.Connected = true;
                 AddChannel(channel);
                 AddHandler(channel);
+                //channel.StartRecv();
                 LogRecord.Log(LogLevel.Info, "HandleConnect", $"连接服务端:{channel.RemoteEndPoint}成功...");
             }
             catch (Exception e)

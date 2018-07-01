@@ -2,6 +2,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Threading;
+using System.Threading.Tasks;
 
 namespace NetChannel
 {
@@ -12,7 +13,6 @@ namespace NetChannel
     {
         public const int First = 1;
         public const int Second = 2;
-        public const int Stop = 3;
     }
 
     /// <summary>
@@ -47,9 +47,6 @@ namespace NetChannel
         private ConcurrentQueue<SendTask> firstQueue = new ConcurrentQueue<SendTask>();
         private ConcurrentQueue<SendTask> secondQueue = new ConcurrentQueue<SendTask>();
         private volatile byte state = QueueState.First;
-        private Thread thread;
-        private AutoResetEvent doSendResetEvent = new AutoResetEvent(false);
-        private AutoResetEvent enqueueResetEvent = new AutoResetEvent(false);
         private readonly Session session;
 
         /// <summary>
@@ -64,30 +61,17 @@ namespace NetChannel
         /// <summary>
         /// 开始启动发送线程
         /// </summary>
-        public void Start()
+        public async void Start()
         {
-            if(thread == null)
-            {
-                thread = new Thread(HandleSend);
-                thread.IsBackground = true;
-                thread.Start();
-            }
+            await HandleSend();
         }
 
-        private volatile int writeCount;
         /// <summary>
         /// 插入一个数据包到发送队列中
         /// </summary>
         /// <param name="sendTask"></param>
         public void Enqueue(SendTask sendTask)
         {
-            var size = sendTask.Packet.Data == null ? 0 : sendTask.Packet.Data.Length + PacketParser.HeadMaxSize;
-            writeCount += size;
-            if (writeCount >= short.MaxValue)
-            {
-                enqueueResetEvent.WaitOne(1);
-                writeCount = 0;
-            }
             switch (state)
             {
                 case QueueState.First:
@@ -98,76 +82,76 @@ namespace NetChannel
                     break;
             }
 
-            doSendResetEvent.Set();
+            //doSendResetEvent.Set();
         }
 
         /// <summary>
         /// 处理数据发送回调函数
         /// </summary>
-        private async void HandleSend()
+        private async Task HandleSend()
         {
             try
             {
-                while (state != QueueState.Stop)
+                //while (state != QueueState.Stop)
+                //{
+
+                //}
+                while (true)
                 {
-                    while (true)
+                    SendTask sendTask;
+                    if (state == QueueState.First)
                     {
-                        SendTask sendTask;
-                        if (state == QueueState.First)
+                        if (secondQueue.IsEmpty)
                         {
-                            if (secondQueue.IsEmpty)
+                            if (!firstQueue.IsEmpty)
                             {
-                                if (!firstQueue.IsEmpty)
-                                {
-                                    Swap();
-                                    continue;
-                                }
-                                break;
+                                Swap();
+                                continue;
                             }
-                            else
-                            {
-                                if (secondQueue.TryDequeue(out sendTask))
-                                {
-                                    //如果无连接包丢弃
-                                    //if (!sendTask.Channel.Connected)
-                                    //{
-                                    //    continue;
-                                    //}
-                                    sendTask.WriteToBuffer();
-                                }
-                            }
+                            break;
                         }
-                        else if(state == QueueState.Second)
+                        else
                         {
-                            if (firstQueue.IsEmpty)
+                            if (secondQueue.TryDequeue(out sendTask))
                             {
-                                if (!secondQueue.IsEmpty)
-                                {
-                                    Swap();
-                                    continue;
-                                }
-                                break;
-                            }
-                            else
-                            {
-                                if (firstQueue.TryDequeue(out sendTask))
-                                {
-                                    //如果无连接包丢弃
-                                    //if (!sendTask.Channel.Connected)
-                                    //{
-                                    //    continue;
-                                    //}
-                                    sendTask.WriteToBuffer();
-                                }
+                                //如果无连接包丢弃
+                                //if (!sendTask.Channel.Connected)
+                                //{
+                                //    continue;
+                                //}
+                                sendTask.WriteToBuffer();
                             }
                         }
                     }
-                    //发送出去
-                    await session.StartSend();
-                    enqueueResetEvent.Set();
-                    doSendResetEvent.WaitOne(1);
-                    session.CheckHeadbeat();
+                    else if (state == QueueState.Second)
+                    {
+                        if (firstQueue.IsEmpty)
+                        {
+                            if (!secondQueue.IsEmpty)
+                            {
+                                Swap();
+                                continue;
+                            }
+                            break;
+                        }
+                        else
+                        {
+                            if (firstQueue.TryDequeue(out sendTask))
+                            {
+                                //如果无连接包丢弃
+                                //if (!sendTask.Channel.Connected)
+                                //{
+                                //    continue;
+                                //}
+                                sendTask.WriteToBuffer();
+                            }
+                        }
+                    }
                 }
+                //发送出去
+                await session.StartSend();
+                //await session.StartRecv();
+                session.CheckHeadbeat();
             }
             catch(Exception e)
             {
@@ -197,8 +181,6 @@ namespace NetChannel
             {
                 if (disposing)
                 {
-                    doSendResetEvent.Set();
-                    state = QueueState.Stop;
                 }
                 disposedValue = true;
             }

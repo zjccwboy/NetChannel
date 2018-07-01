@@ -155,6 +155,7 @@ namespace NetChannel
                     }
                     if (!packet.IsHeartbeat)
                     {
+                        //LogRecord.Log(LogLevel.Error, "StartRecv", $"收到远程电脑:{recvResult.RemoteEndPoint}");
                         if (packet.IsRpc)
                         {
                             if (RpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
@@ -183,23 +184,20 @@ namespace NetChannel
         /// <summary>
         /// 该方法并没有用
         /// </summary>
-        public override void StartRecv()
+        public override async void StartRecv()
         {
-            //while (true)
-            //{
-            //    UdpReceiveResult recvResult;
-            //    try
-            //    {
-            //        recvResult = await this.socketClient.ReceiveAsync();
-            //        LastRecvTime = TimeUitls.Now();
-            //    }
-            //    catch (Exception e)
-            //    {
-            //        LogRecord.Log(LogLevel.Warn, "StartRecv", e);
-            //        continue;
-            //    }
-            //    HandleRecv(recvResult);
-            //}
+            UdpReceiveResult recvResult;
+            try
+            {
+                recvResult = await this.socketClient.ReceiveAsync();
+                LastRecvTime = TimeUitls.Now();
+            }
+            catch (Exception e)
+            {
+                LogRecord.Log(LogLevel.Warn, "StartRecv", e);
+                return;
+            }
+            HandleRecv(recvResult);
         }
 
         /// <summary>
@@ -257,8 +255,6 @@ namespace NetChannel
         /// <param name="count"></param>
         private void Output(byte[] bytes, int count)
         {
-            //LogRecord.Log(LogLevel.Warn, "Output", $"发送数据到:{this.RemoteEndPoint}");
-            //socketClient.Send(bytes, count, this.RemoteEndPoint);
             this.socketClient.Client.SendTo(bytes, 0, count, SocketFlags.None, this.RemoteEndPoint);
         }
 
@@ -284,9 +280,9 @@ namespace NetChannel
         /// </summary>
         private void SetKcpSendTime()
         {
-            sendIntervalTime = TimeUitls.Now();
             kcp.Update(this.sendIntervalTime);
-            //this.sendIntervalTime = this.kcp.Check(this.sendIntervalTime);
+            sendIntervalTime = TimeUitls.Now();
+            this.sendIntervalTime = this.kcp.Check(this.sendIntervalTime);
         }        
 
     }

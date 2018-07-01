@@ -15,81 +15,55 @@ namespace TestKcpClient
     {
         static void Main(string[] args)
         {
-            TestSubscription();
-            Console.Read();
-        }
-
-        static async void TestSubscription()
-        {
             var endPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8989);
             var session = new Session(endPoint, ProtocalType.Kcp);
-            var channel = await session.Connect();
-            //for (var i = 0; i < 20; i++)
-            //{
-            //    session.Subscribe(send, (packet) =>
-            //    {
-            //        var data = BitConverter.ToInt32(packet.Data, 0);
-            //        Console.WriteLine($"收到数据包:{data}");
-            //    });
-            //}
-            var stopwatch = new Stopwatch();
+            var task = session.Connect(); ;
+            task.Wait();
             stopwatch.Start();
-            var send = new Packet { Data = BitConverter.GetBytes(999) };
-            await Task.Run(() =>
+            while (true)
             {
-                while (true)
+                Subscribe(session, task.Result);
+                session.Start();
+            }
+        }
+
+
+        static Stopwatch stopwatch = new Stopwatch();
+        static void Subscribe(Session session, ANetChannel channel)
+        {
+            var send = new Packet { Data = BitConverter.GetBytes(999) };
+            int count = 0;
+            for (var i = 1; i <= 100; i++)
+            {
+                if (channel.Connected)
                 {
-                    if (channel.Connected)
+                    if (!channel.Connected)
                     {
-                        int sendCount = 1000;
-                        int count = 0;
-                        int i = 0;
-                        while (true)
-                        {
-                            if (!channel.Connected)
-                            {
-                                break;
-                            }
-                            if (i < sendCount)
-                            {
-                                session.Subscribe(send, (packet) =>
-                                {
-                                    var data = BitConverter.ToInt32(packet.Data, 0);
-                                    if (data != 999)
-                                    {
-                                        Console.WriteLine($"解包出错:{data}");
-                                        Console.Read();
-                                    }
-                                    Interlocked.Increment(ref count);
-                                    if (count == sendCount)
-                                    {
-                                        //Console.WriteLine($"{stopwatch.ElapsedMilliseconds}毫秒钟响应请求:{count}/条");
-                                        LogRecord.Log(LogLevel.Info, "接收数据包", $"{stopwatch.ElapsedMilliseconds}毫秒钟响应请求:{count}/条");
-                                    }
-                                    if (count > sendCount)
-                                    {
-                                        //Console.WriteLine($"接收到数据包:{count}个与发送数据包:{sendCount}个不一致...");
-                                        LogRecord.Log(LogLevel.Notice, "接收数据包", $"接收到数据包:{count}个与发送数据包:{sendCount}个不一致...");
-                                    }
-                                });
-                            }
-                            else
-                            {
-                                Thread.Sleep(1);
-                            }
-                            if (count == sendCount)
-                            {
-                                break;
-                            }
-                            i++;
-                        }
+                        break;
                     }
-                    Thread.Sleep(1000);
-                    stopwatch.Restart();
+                    //session.SendMessage(send);
+                    session.Subscribe(send, (packet) =>
+                    {
+                        count++;
+                        var data = BitConverter.ToInt32(packet.Data, 0);
+                        if (data != 999)
+                        {
+                            Console.WriteLine($"解包出错:{data}");
+                            Console.Read();
+                        }
+                        Interlocked.Increment(ref count);
+                        if (count == 100)
+                        {
+                            //Console.WriteLine($"{stopwatch.ElapsedMilliseconds}毫秒钟响应请求:{count}/条");
+                            LogRecord.Log(LogLevel.Info, "接收数据包", $"{stopwatch.ElapsedMilliseconds}毫秒钟响应请求:{count}/条");
+                            stopwatch.Restart();
+                        }
+                    });
                 }
-            });
+            }
 
-
+            //Thread.Sleep(1000);
+            
         }
     }
 }

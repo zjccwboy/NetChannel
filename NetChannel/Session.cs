@@ -60,7 +60,6 @@ namespace NetChannel
             {
                 netService = new KcpService(endPoint, this, sessionType);
             }
-            netService.SendQueue.Start();
             await netService.AcceptAsync();
         }
 
@@ -80,9 +79,13 @@ namespace NetChannel
             {
                 netService = new KcpService(endPoint, this, sessionType);
             }
-            netService.SendQueue.Start();
             currentChannel = await netService.ConnectAsync();
             return currentChannel;
+        }
+
+        public void Start()
+        {
+            netService.SendQueue.Start();
         }
 
         /// <summary>
@@ -151,6 +154,16 @@ namespace NetChannel
             {
                 await channel.StartSend();
             }
+        }
+
+        internal void StartRecv()
+        {
+            //var channels = netService.Channels.Values;
+            //foreach (var channel in channels)
+            //{
+            //    channel.StartRecv();
+            //}
+            //(netService as KcpService).StartRecv();
         }
 
         /// <summary>
