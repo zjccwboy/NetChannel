@@ -36,7 +36,6 @@ namespace NetChannel
         private UdpClient socketClient;
         private Kcp kcp;
         private readonly byte[] cacheBytes = new byte[1400];
-        private ConcurrentQueue<Packet> sendQueut = new ConcurrentQueue<Packet>();
 
         /// <summary>
         /// 构造函数,Connect
@@ -209,19 +208,8 @@ namespace NetChannel
         /// <returns></returns>
         public override Task StartSend()
         {
-
             if (Connected)
             {
-                //while (!this.sendQueut.IsEmpty)
-                //{
-                //    this.LastSendTime = TimeUitls.Now();
-                //    Packet packet;
-                //    if (this.sendQueut.TryDequeue(out packet))
-                //    {
-                //        this.SendParser.WriteBuffer(packet);
-                //    }
-                //}
-
                 while (this.SendParser.Buffer.DataSize > 0)
                 {
                     var offset = this.SendParser.Buffer.FirstOffset;
@@ -231,26 +219,12 @@ namespace NetChannel
                     if (count > 0)
                     {
                         this.SendParser.Buffer.UpdateRead(count);
-                        SetKcpSendTime();
+                        //SetKcpSendTime();
+                        this.LastSendTime = TimeUitls.Now();
                     }
-                }
-                SetKcpSendTime();
+                }                
             }
-
-            //if (Connected)
-            //{
-            //    while (!this.sendQueut.IsEmpty)
-            //    {
-            //        this.LastSendTime = TimeUitls.Now();
-            //        Packet packet;
-            //        if (this.sendQueut.TryDequeue(out packet))
-            //        {
-            //            var bytes = RecvParser.GetPacketBytes(packet);
-            //            SendToKcp(bytes);
-            //        }
-            //    }
-            //    SetKcpSendTime();
-            //}
+            SetKcpSendTime();
             return Task.CompletedTask;
         }
 
@@ -284,7 +258,8 @@ namespace NetChannel
         private void Output(byte[] bytes, int count)
         {
             //LogRecord.Log(LogLevel.Warn, "Output", $"发送数据到:{this.RemoteEndPoint}");
-            socketClient.Send(bytes, count, this.RemoteEndPoint);
+            //socketClient.Send(bytes, count, this.RemoteEndPoint);
+            this.socketClient.Client.SendTo(bytes, 0, count, SocketFlags.None, this.RemoteEndPoint);
         }
 
         /// <summary>
@@ -311,7 +286,7 @@ namespace NetChannel
         {
             sendIntervalTime = TimeUitls.Now();
             kcp.Update(this.sendIntervalTime);
-            this.sendIntervalTime = this.kcp.Check(this.sendIntervalTime);
+            //this.sendIntervalTime = this.kcp.Check(this.sendIntervalTime);
         }        
 
     }

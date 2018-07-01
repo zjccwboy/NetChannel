@@ -129,10 +129,10 @@ namespace NetChannel
                                 if (secondQueue.TryDequeue(out sendTask))
                                 {
                                     //如果无连接包丢弃
-                                    if (!sendTask.Channel.Connected)
-                                    {
-                                        continue;
-                                    }
+                                    //if (!sendTask.Channel.Connected)
+                                    //{
+                                    //    continue;
+                                    //}
                                     sendTask.WriteToBuffer();
                                 }
                             }
@@ -153,10 +153,10 @@ namespace NetChannel
                                 if (firstQueue.TryDequeue(out sendTask))
                                 {
                                     //如果无连接包丢弃
-                                    if (!sendTask.Channel.Connected)
-                                    {
-                                        continue;
-                                    }
+                                    //if (!sendTask.Channel.Connected)
+                                    //{
+                                    //    continue;
+                                    //}
                                     sendTask.WriteToBuffer();
                                 }
                             }

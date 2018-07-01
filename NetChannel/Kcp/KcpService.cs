@@ -115,6 +115,7 @@ namespace NetChannel
                     var packet = connectParser.ReadBuffer();
                     if (!packet.IsSuccess)
                     {
+                        LogRecord.Log(LogLevel.Error, "StartRecv", $"丢弃非法数据包:{recvResult.RemoteEndPoint}");
                         //丢弃非法数据包
                         connectParser.Buffer.Flush();
                         continue;
@@ -129,6 +130,7 @@ namespace NetChannel
                     }
                     else if (packet.KcpProtocal == KcpNetProtocal.FIN)
                     {
+                        LogRecord.Log(LogLevel.Error, "StartRecv", $"丢弃非法数据包:{recvResult.RemoteEndPoint}");
                         HandleFIN(packet);
                     }
                 }
