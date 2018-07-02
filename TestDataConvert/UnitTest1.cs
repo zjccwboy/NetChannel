@@ -1,6 +1,8 @@
 ﻿using System;
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Common;
+using NetChannel;
+using System.Text;
 
 namespace TestDataConvert
 {
@@ -44,6 +46,6 @@ namespace TestDataConvert
             var classc = bytes.ConvertToObject<TestClass>();
 
             Assert.AreEqual(classa, classc);
-        }
+        }       
     }
 }

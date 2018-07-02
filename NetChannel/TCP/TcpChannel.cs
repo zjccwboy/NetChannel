@@ -60,7 +60,7 @@ namespace NetChannel
             }
             catch (Exception e)
             {
-                LogRecord.Log(LogLevel.Warn, "StartConnecting", e);
+                LogRecord.Log(LogLevel.Warn, "StartConnecting", e.ConvertToJson());
                 return false;
             }
         }
@@ -88,7 +88,7 @@ namespace NetChannel
             }
             catch (Exception e)
             {
-                LogRecord.Log(LogLevel.Warn, "CheckConnection", e);
+                LogRecord.Log(LogLevel.Warn, "CheckConnection", e.ConvertToJson());
                 return false;
             }
         }
@@ -134,13 +134,13 @@ namespace NetChannel
                     {
                         return;
                     }
-                    await netStream.WriteAsync(SendParser.Buffer.First, SendParser.Buffer.FirstOffset, SendParser.Buffer.FirstCount);
-                    SendParser.Buffer.UpdateRead(SendParser.Buffer.FirstCount);
+                    await netStream.WriteAsync(SendParser.Buffer.First, SendParser.Buffer.FirstReadOffset, SendParser.Buffer.FirstDataSize);
+                    SendParser.Buffer.UpdateRead(SendParser.Buffer.FirstDataSize);
                 }
             }
             catch (Exception e)
             {
-                LogRecord.Log(LogLevel.Warn, "StartSend", e);
+                LogRecord.Log(LogLevel.Warn, "StartSend", e.ConvertToJson());
                 HandleError();
             }
         }
@@ -176,7 +176,7 @@ namespace NetChannel
                         return;
                     }
 
-                    var count = await netStream.ReadAsync(RecvParser.Buffer.Last, RecvParser.Buffer.LastOffset, RecvParser.Buffer.LastCount);
+                    var count = await netStream.ReadAsync(RecvParser.Buffer.Last, RecvParser.Buffer.LastWriteOffset, RecvParser.Buffer.LastCapacity);
                     if (count <= 0)
                     {
                         HandleError();
@@ -219,7 +219,7 @@ namespace NetChannel
             }
             catch (Exception e)
             {
-                LogRecord.Log(LogLevel.Warn, "StartRecv", e);
+                LogRecord.Log(LogLevel.Warn, "StartRecv", e.ConvertToJson());
                 HandleError();
             }
         }

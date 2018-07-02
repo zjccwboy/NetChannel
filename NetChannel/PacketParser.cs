@@ -14,17 +14,17 @@ namespace NetChannel
         /// <summary>
         /// 接收成功
         /// </summary>
-        internal bool IsSuccess;
+        public bool IsSuccess;
 
         /// <summary>
         /// Rpc请求标志
         /// </summary>
-        internal bool IsRpc;
+        public bool IsRpc;
 
         /// <summary>
         /// 心跳标志
         /// </summary>
-        internal bool IsHeartbeat;
+        public bool IsHeartbeat;
 
         /// <summary>
         /// 压缩标志
@@ -39,7 +39,7 @@ namespace NetChannel
         /// <summary>
         /// Kcp包协议
         /// </summary>
-        internal byte KcpProtocal;
+        public byte KcpProtocal;
 
         /// <summary>
         /// 是否时Actor
@@ -275,18 +275,18 @@ namespace NetChannel
                         }
                         if (Buffer.DataSize >= PacketFlagSize && readLength == 0)//读取包长度
                         {
-                            if (Buffer.FirstCount >= PacketFlagSize)
+                            if (Buffer.FirstDataSize >= PacketFlagSize)
                             {
 
-                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, headBytes, 0, PacketFlagSize);
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstReadOffset, headBytes, 0, PacketFlagSize);
                                 Buffer.UpdateRead(PacketFlagSize);
                             }
                             else
                             {
-                                var count = Buffer.FirstCount;
-                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, headBytes, 0, count);
+                                var count = Buffer.FirstDataSize;
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstReadOffset, headBytes, 0, count);
                                 Buffer.UpdateRead(count);
-                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, headBytes, count, PacketFlagSize - count);
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstReadOffset, headBytes, count, PacketFlagSize - count);
                                 Buffer.UpdateRead(PacketFlagSize - count);
                             }
                             readLength += PacketFlagSize;
@@ -295,7 +295,7 @@ namespace NetChannel
                         }
                         if (Buffer.DataSize >= BitFlagSize && readLength == PacketFlagSize)//读取标志位
                         {
-                            System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, headBytes, PacketFlagSize, BitFlagSize);
+                            System.Buffer.BlockCopy(Buffer.First, Buffer.FirstReadOffset, headBytes, PacketFlagSize, BitFlagSize);
                             Buffer.UpdateRead(BitFlagSize);
                             readLength += BitFlagSize;
                             SetBitFlag(headBytes[PacketFlagSize]);
@@ -320,17 +320,17 @@ namespace NetChannel
                     case ParseState.Rpc:
                         if (Buffer.DataSize >= RpcFlagSize && readLength == HeadMinSize)//读取Rpc标志位
                         {
-                            if (Buffer.FirstCount >= RpcFlagSize)
+                            if (Buffer.FirstDataSize >= RpcFlagSize)
                             {
-                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, headBytes, HeadMinSize, RpcFlagSize);
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstReadOffset, headBytes, HeadMinSize, RpcFlagSize);
                                 Buffer.UpdateRead(RpcFlagSize);
                             }
                             else
                             {
-                                var count = Buffer.FirstCount;
-                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, headBytes, HeadMinSize, count);
+                                var count = Buffer.FirstDataSize;
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstReadOffset, headBytes, HeadMinSize, count);
                                 Buffer.UpdateRead(count);
-                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, headBytes, HeadMinSize + count, RpcFlagSize - count);
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstReadOffset, headBytes, HeadMinSize + count, RpcFlagSize - count);
                                 Buffer.UpdateRead(RpcFlagSize - count);
                             }
                             readLength += RpcFlagSize;
@@ -349,17 +349,17 @@ namespace NetChannel
                         var needSize = isRpc ? HeadMinSize + RpcFlagSize : HeadMinSize;
                         if (Buffer.DataSize >= ActorIdFlagSize && readLength == needSize)
                         {
-                            if (Buffer.FirstCount >= ActorIdFlagSize)
+                            if (Buffer.FirstDataSize >= ActorIdFlagSize)
                             {
-                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, headBytes, needSize, ActorIdFlagSize);
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstReadOffset, headBytes, needSize, ActorIdFlagSize);
                                 Buffer.UpdateRead(ActorIdFlagSize);
                             }
                             else
                             {
-                                var count = Buffer.FirstCount;
-                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, headBytes, needSize, count);
+                                var count = Buffer.FirstDataSize;
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstReadOffset, headBytes, needSize, count);
                                 Buffer.UpdateRead(count);
-                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, headBytes, needSize + count, ActorIdFlagSize - count);
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstReadOffset, headBytes, needSize + count, ActorIdFlagSize - count);
                                 Buffer.UpdateRead(ActorIdFlagSize - count);
                             }
                             readLength += ActorIdFlagSize;
@@ -371,21 +371,21 @@ namespace NetChannel
                         needSize = packetSize - readLength;
                         if (Buffer.DataSize >= needSize)
                         {
-                            if (Buffer.FirstCount >= needSize)
+                            if (Buffer.FirstDataSize >= needSize)
                             {
-                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, bodyBytes, readLength - headSize, needSize);
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstReadOffset, bodyBytes, readLength - headSize, needSize);
                                 Buffer.UpdateRead(needSize);
                                 readLength += needSize;
                             }
                             else
                             {
-                                var count = Buffer.FirstCount;
-                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, bodyBytes, readLength - headSize, count);
+                                var count = Buffer.FirstDataSize;
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstReadOffset, bodyBytes, readLength - headSize, count);
                                 Buffer.UpdateRead(count);
                                 readLength += count;
                                 needSize -= count;
-                                count = needSize > Buffer.FirstCount ? Buffer.FirstCount : needSize;
-                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstOffset, bodyBytes, readLength - headSize, count);
+                                count = needSize > Buffer.FirstDataSize ? Buffer.FirstDataSize : needSize;
+                                System.Buffer.BlockCopy(Buffer.First, Buffer.FirstReadOffset, bodyBytes, readLength - headSize, count);
                                 Buffer.UpdateRead(count);
                                 readLength += count;
                             }

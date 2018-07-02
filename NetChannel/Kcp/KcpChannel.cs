@@ -191,8 +191,8 @@ namespace NetChannel
             {
                 while (this.SendParser.Buffer.DataSize > 0)
                 {
-                    var offset = this.SendParser.Buffer.FirstOffset;
-                    var length = this.SendParser.Buffer.FirstCount;
+                    var offset = this.SendParser.Buffer.FirstReadOffset;
+                    var length = this.SendParser.Buffer.FirstDataSize;
                     length = length > 488 ? 488 : length;
                     var count = kcp.Send(this.SendParser.Buffer.First, offset, length);
                     if (count > 0)

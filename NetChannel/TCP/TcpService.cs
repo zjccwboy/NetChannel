@@ -101,7 +101,7 @@ namespace NetChannel
             }
             catch (Exception e)
             {
-                LogRecord.Log(LogLevel.Warn, "HandleAccept", e);
+                LogRecord.Log(LogLevel.Warn, "HandleAccept", e.ConvertToJson());
             }
         }
 
@@ -122,7 +122,7 @@ namespace NetChannel
             }
             catch (Exception e)
             {
-                LogRecord.Log(LogLevel.Warn, "HandleConnect", e);
+                LogRecord.Log(LogLevel.Warn, "HandleConnect", e.ConvertToJson());
             }
         }
      }

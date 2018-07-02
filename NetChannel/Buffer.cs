@@ -44,19 +44,15 @@ namespace NetChannel
             bufferQueue.Enqueue(new byte[blockSize]);
         }
 
-        private int readOffset;
-        private int writeOffset;
-
         /// <summary>
         /// 指向缓冲区队列中第一个缓冲区块有效的数组下标位置
         /// </summary>
-        public int FirstOffset
-        {
-            get
-            {
-                return readOffset % blockSize;
-            }
-        }
+        public int FirstReadOffset;
+
+        /// <summary>
+        /// 指向缓冲区队列中最后一个缓冲区块有效的数组下标位置
+        /// </summary>
+        public int LastWriteOffset;
 
         /// <summary>
         /// 更新读的的缓冲区字节数
@@ -64,28 +60,16 @@ namespace NetChannel
         /// <param name="addValue"></param>
         public void UpdateRead(int addValue)
         {
-            readOffset += addValue;
-            if (readOffset > writeOffset)
+            FirstReadOffset += addValue;
+            if (FirstReadOffset > blockSize)
             {
                 throw new ArgumentOutOfRangeException("read offset out of buffer.");
             }
 
-            if (readOffset >= blockSize)
+            if (FirstReadOffset == blockSize)
             {
-                readOffset -= blockSize;
-                writeOffset -= blockSize;
+                FirstReadOffset -= FirstReadOffset;
                 bufferCache.Enqueue(bufferQueue.Dequeue());
-            }
-        }
-
-        /// <summary>
-        /// 指向缓冲区队列中最后一个缓冲区块有效的数组下标位置
-        /// </summary>
-        public int LastOffset
-        {
-            get
-            {
-                return writeOffset % blockSize;
             }
         }
 
@@ -95,9 +79,15 @@ namespace NetChannel
         /// <param name="addValue"></param>
         public void UpdateWrite(int addValue)
         {
-            writeOffset += addValue;
-            if (LastOffset == 0)
+            LastWriteOffset += addValue;
+            if (LastWriteOffset > blockSize)
             {
+                throw new ArgumentOutOfRangeException("read offset out of buffer.");
+            }
+
+            if (LastWriteOffset == blockSize)
+            {
+                LastWriteOffset -= LastWriteOffset;
                 if (bufferCache.Count > 0)
                 {
                     bufferQueue.Enqueue(bufferCache.Dequeue());
@@ -110,36 +100,44 @@ namespace NetChannel
         }
 
         /// <summary>
-        /// 缓冲区队列中第一个缓冲区块有效字节数
+        /// 缓冲区队列中第一个缓冲区块可写字符数
         /// </summary>
-        public int FirstCount
+        public int FirstDataSize
         {
             get
             {
-                if(writeOffset > blockSize)
+                var result = 0;
+                if(bufferQueue.Count == 1)
                 {
-                    return blockSize - FirstOffset;
+                    result = LastWriteOffset - FirstReadOffset;
                 }
                 else
                 {
-                    return writeOffset - FirstOffset;
+                    result = blockSize - FirstReadOffset;
                 }
+
+                if(result < 0)
+                {
+                    throw new ArgumentOutOfRangeException("read offset out of buffer.");
+                }
+
+                return result;
             }
         }
 
         /// <summary>
-        /// 缓冲区队列中最后一个缓冲区块有效字节数
+        /// 缓冲区队列中最后一个缓冲区块可写字符数
         /// </summary>
-        public int LastCount
+        public int LastCapacity
         {
             get
             {
-                return blockSize - LastOffset;
+                return blockSize - LastWriteOffset;
             }
         }
 
         /// <summary>
-        /// 当前缓冲区中有效的字节数
+        /// 当前缓冲区中有效数据的字节数
         /// </summary>
         public int DataSize
         {
@@ -152,7 +150,7 @@ namespace NetChannel
                 }
                 else
                 {
-                    size = writeOffset - readOffset;
+                    size = bufferQueue.Count * blockSize - FirstReadOffset - LastCapacity;//lastOffset - firstOffset;
                 }
                 if (size < 0)
                 {
@@ -181,8 +179,8 @@ namespace NetChannel
         {
             while(length > 0)
             {
-                var count = length > LastCount ? LastCount : length;
-                System.Buffer.BlockCopy(bytes, index, Last, LastOffset, count);
+                var count = length > LastCapacity ? LastCapacity : length;
+                System.Buffer.BlockCopy(bytes, index, Last, LastWriteOffset, count);
                 index += count;
                 length -= count;
                 UpdateWrite(count);
@@ -216,8 +214,8 @@ namespace NetChannel
         /// </summary>
         public void Flush()
         {
-            readOffset = 0;
-            writeOffset = 0;
+            FirstReadOffset = 0;
+            LastWriteOffset = 0;
             while(bufferQueue.Count > 1)
             {
                 bufferQueue.Dequeue();

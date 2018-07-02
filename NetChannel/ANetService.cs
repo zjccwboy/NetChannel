@@ -124,7 +124,7 @@ namespace NetChannel
             }
             catch (Exception e)
             {
-                LogRecord.Log(LogLevel.Warn, "HandleDisConnectOnServer", e);
+                LogRecord.Log(LogLevel.Warn, "HandleDisConnectOnServer", e.ConvertToJson());
             }
         }
 
@@ -144,7 +144,7 @@ namespace NetChannel
             }
             catch (Exception e)
             {
-                LogRecord.Log(LogLevel.Warn, "HandleDisConnectOnClient", e);
+                LogRecord.Log(LogLevel.Warn, "HandleDisConnectOnClient", e.ConvertToJson());
             }
         }
     }
