@@ -16,81 +16,57 @@ namespace MergeClient
     {
         static void Main(string[] args)
         {
-            //TestNotice();
-            TestSubscription();
-            Console.Read();
-        }
-
-        static async void TestNotice()
-        {
             var endPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8989);
             var session = new Session(endPoint, ProtocalType.Tcp);
-            await session.Connect();
-            Thread.Sleep(200);
-            var send = new Packet { Data = BitConverter.GetBytes(999) };
-            for(int i=0;i<10;i++)
+            var task = session.Connect(); ;
+            task.Wait();
+            stopwatch.Start();
+            while (true)
             {
-                session.SendMessage(send);
+                Subscribe(session, task.Result);
+                session.Start();
+                Thread.Sleep(1);
             }
         }
 
-        static async void TestSubscription()
+
+        static Stopwatch stopwatch = new Stopwatch();
+        static int sendCount = 0;
+        static int recvCount = 0;
+        static void Subscribe(Session session, ANetChannel channel)
         {
-            var endPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8989);
-            var session = new Session(endPoint, ProtocalType.Tcp);
-            var channel = await session.Connect();
-            var stopwatch = new Stopwatch();
-            stopwatch.Start();
-            var send = new Packet { Data = BitConverter.GetBytes(999) };
-            while (true)
+            //优先处理完接收的包
+            if (sendCount - recvCount > 0)
             {
+                return;
+            }
+
+            var send = new Packet { Data = BitConverter.GetBytes(166666) };
+            for (var i = 1; i <= 100; i++)
+            {
+                sendCount++;
                 if (channel.Connected)
                 {
-                    int sendCount = 1000;
-                    int count = 0;
-                    int i = 0;
-                    while (true)
+                    session.Subscribe(send, (packet) =>
                     {
-                        if (!channel.Connected)
+                        recvCount++;
+                        var data = BitConverter.ToInt32(packet.Data, 0);
+                        if (data != 166666)
                         {
-                            break;
+                            Console.WriteLine($"解包出错:{data}");
+                            //Console.Read();
                         }
-                        if(i < sendCount)
+                        if (recvCount % 10000 == 0)
                         {
-                            session.Subscribe(send, (packet) =>
-                            {
-                                var data = BitConverter.ToInt32(packet.Data, 0);
-                                if (data != 999)
-                                {
-                                    Console.WriteLine($"解包出错:{data}");
-                                    Console.Read();
-                                }
-                                Interlocked.Increment(ref count);
-                                if (count == sendCount)
-                                {
-                                    //Console.WriteLine($"{stopwatch.ElapsedMilliseconds}毫秒钟响应请求:{count}/条");
-                                    LogRecord.Log(LogLevel.Info, "接收数据包", $"{stopwatch.ElapsedMilliseconds}毫秒钟响应请求:{count}/条");
-                                }
-                                if(count > sendCount)
-                                {
-                                    //Console.WriteLine($"接收到数据包:{count}个与发送数据包:{sendCount}个不一致...");
-                                    LogRecord.Log(LogLevel.Notice, "接收数据包", $"接收到数据包:{count}个与发送数据包:{sendCount}个不一致...");
-                                }
-                            });
+                            LogRecord.Log(LogLevel.Info, "数据响应测试", $"响应:{10000}个包耗时{stopwatch.ElapsedMilliseconds}毫秒");
+                            stopwatch.Restart();
                         }
-                        else
-                        {
-                            Thread.Sleep(1);
-                        }
-                        if(count == sendCount)
-                        {
-                            break;
-                        }
-                        i++;
-                    }
+                    });
                 }
-                Thread.Sleep(1000);
-                stopwatch.Restart();
+                else
+                {
+                    LogRecord.Log(LogLevel.Info, "连接断开", $"本地端口:{channel.LocalEndPoint}");
+                }
             }
         }
     }
