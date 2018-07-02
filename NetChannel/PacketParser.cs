@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Generic;
 using System.Net;
+using System.Text;
 using Common;
 
 namespace NetChannel
@@ -468,6 +469,13 @@ namespace NetChannel
                 Parse();
                 if (isOk)
                 {
+                    var result = "111111111122222222223333333333444444444455555555556666666666777777777788888888889999999999";
+                    var compare = Encoding.UTF8.GetString(bodyBytes);
+                    if(result != compare)
+                    {
+                        Console.WriteLine($"解包出错:{compare}");
+                    }
+
                     var packet = new Packet
                     {
                         IsSuccess = true,
