@@ -158,7 +158,6 @@ namespace NetChannel
             }
             var channel = new KcpChannel(recvResult, this.udpClient, this, conv);
             channel.OnConnect = HandleAccept;
-            channel.InitKcp();
             channel.OnConnect?.Invoke(channel);
             ConnectSender.SendACK(this.udpClient, channel.RemoteEndPoint, channel);
         }
@@ -173,7 +172,6 @@ namespace NetChannel
         {
             var channel = new KcpChannel(recvResult,this.udpClient, this, packet.ActorMessageId);
             channel.OnConnect = HandleConnect;
-            channel.InitKcp();
             channel.OnConnect?.Invoke(channel);
             if (tcs != null)
             {

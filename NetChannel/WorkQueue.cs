@@ -7,15 +7,6 @@ using System.Threading.Tasks;
 namespace NetChannel
 {
     /// <summary>
-    /// 队列状态
-    /// </summary>
-    internal class QueueState
-    {
-        public const int First = 1;
-        public const int Second = 2;
-    }
-
-    /// <summary>
     /// 发送任务
     /// </summary>
     internal class SendTask
@@ -42,11 +33,9 @@ namespace NetChannel
     /// <summary>
     /// 一个双缓冲生产消费队列，用于合并发送包
     /// </summary>
-    internal class WorkQueue : IDisposable
+    internal class WorkQueue
     {
-        private ConcurrentQueue<SendTask> firstQueue = new ConcurrentQueue<SendTask>();
-        private ConcurrentQueue<SendTask> secondQueue = new ConcurrentQueue<SendTask>();
-        private volatile byte state = QueueState.First;
+        private ConcurrentQueue<SendTask> sendQueue = new ConcurrentQueue<SendTask>();
         private readonly Session session;
 
         /// <summary>
@@ -72,17 +61,7 @@ namespace NetChannel
         /// <param name="sendTask"></param>
         public void Enqueue(SendTask sendTask)
         {
-            switch (state)
-            {
-                case QueueState.First:
-                    firstQueue.Enqueue(sendTask);
-                    break;
-                case QueueState.Second:
-                    secondQueue.Enqueue(sendTask);
-                    break;
-            }
-
-            //doSendResetEvent.Set();
+            sendQueue.Enqueue(sendTask);
         }
 
         /// <summary>
@@ -92,103 +71,23 @@ namespace NetChannel
         {
             try
             {
-                //while (state != QueueState.Stop)
-                //{
 
-                //}
-                while (true)
+                while (!sendQueue.IsEmpty)
                 {
-                    SendTask sendTask;
-                    if (state == QueueState.First)
+                    if(sendQueue.TryDequeue(out SendTask send))
                     {
-                        if (secondQueue.IsEmpty)
-                        {
-                            if (!firstQueue.IsEmpty)
-                            {
-                                Swap();
-                                continue;
-                            }
-                            break;
-                        }
-                        else
-                        {
-                            if (secondQueue.TryDequeue(out sendTask))
-                            {
-                                //如果无连接包丢弃
-                                //if (!sendTask.Channel.Connected)
-                                //{
-                                //    continue;
-                                //}
-                                sendTask.WriteToBuffer();
-                            }
-                        }
-                    }
-                    else if (state == QueueState.Second)
-                    {
-                        if (firstQueue.IsEmpty)
-                        {
-                            if (!secondQueue.IsEmpty)
-                            {
-                                Swap();
-                                continue;
-                            }
-                            break;
-                        }
-                        else
-                        {
-                            if (firstQueue.TryDequeue(out sendTask))
-                            {
-                                //如果无连接包丢弃
-                                //if (!sendTask.Channel.Connected)
-                                //{
-                                //    continue;
-                                //}
-                                sendTask.WriteToBuffer();
-                            }
-                        }
+                        send.WriteToBuffer();
                     }
                 }
+
                 //发送出去
                 await session.StartSend();
-                //await session.StartRecv();
                 session.CheckHeadbeat();
             }
             catch(Exception e)
             {
                 LogRecord.Log(LogLevel.Warn, "HandleSend", e);
             }
-        }
-
-        /// <summary>
-        /// 切换队列
-        /// </summary>
-        private void Swap()
-        {
-            if (state == QueueState.First)
-            {
-                state = QueueState.Second;
-            }
-            else
-            {
-                state = QueueState.First;
-            }
-        }
-
-        private bool disposedValue = false; // 要检测冗余调用
-        protected virtual void Dispose(bool disposing)
-        {
-            if (!disposedValue)
-            {
-                if (disposing)
-                {
-                }
-                disposedValue = true;
-            }
-        }
-
-        void IDisposable.Dispose()
-        {
-            Dispose(true);
         }
     }
 }

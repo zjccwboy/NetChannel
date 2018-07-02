@@ -24,46 +24,49 @@ namespace TestKcpClient
             {
                 Subscribe(session, task.Result);
                 session.Start();
+                Thread.Sleep(1);
             }
         }
 
 
         static Stopwatch stopwatch = new Stopwatch();
+        static int sendCount = 0;
+        static int recvCount = 0;
         static void Subscribe(Session session, ANetChannel channel)
         {
-            var send = new Packet { Data = BitConverter.GetBytes(999) };
-            int count = 0;
+            //优先处理完接收的包
+            if(sendCount - recvCount > 0)
+            {
+                return;
+            }
+
+            var send = new Packet { Data = BitConverter.GetBytes(166666) };
             for (var i = 1; i <= 100; i++)
             {
+                sendCount++;
                 if (channel.Connected)
                 {
-                    if (!channel.Connected)
-                    {
-                        break;
-                    }
-                    //session.SendMessage(send);
                     session.Subscribe(send, (packet) =>
                     {
-                        count++;
+                        recvCount++;
                         var data = BitConverter.ToInt32(packet.Data, 0);
-                        if (data != 999)
+                        if (data != 166666)
                         {
                             Console.WriteLine($"解包出错:{data}");
                             Console.Read();
                         }
-                        Interlocked.Increment(ref count);
-                        if (count == 100)
+                        if (recvCount % 10000 == 0)
                         {
-                            //Console.WriteLine($"{stopwatch.ElapsedMilliseconds}毫秒钟响应请求:{count}/条");
-                            LogRecord.Log(LogLevel.Info, "接收数据包", $"{stopwatch.ElapsedMilliseconds}毫秒钟响应请求:{count}/条");
+                            LogRecord.Log(LogLevel.Info, "数据响应测试", $"响应:{10000}个包耗时{stopwatch.ElapsedMilliseconds}毫秒");
                             stopwatch.Restart();
                         }
                     });
                 }
-            }
-
-            //Thread.Sleep(1000);
-            
+                else
+                {
+                    LogRecord.Log(LogLevel.Info, "连接断开", $"本地端口:{channel.LocalEndPoint}");
+                }
+            }            
         }
     }
 }

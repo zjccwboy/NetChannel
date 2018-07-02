@@ -36,20 +36,7 @@ namespace NetChannel
         private UdpClient socketClient;
         private Kcp kcp;
         private readonly byte[] cacheBytes = new byte[1400];
-
-        /// <summary>
-        /// 构造函数,Connect
-        /// </summary>
-        /// <param name="recvResult">Udp接收数据包对象</param>
-        /// <param name="udpClient">Ip/端口</param>
-        /// <param name="netService">网络服务</param>
-        public KcpChannel(UdpReceiveResult recvResult, UdpClient udpClient, ANetService netService) : base(netService)
-        {
-            this.LocalEndPoint = udpClient.Client.LocalEndPoint as IPEndPoint;
-            this.RemoteEndPoint = recvResult.RemoteEndPoint;
-            RecvParser = new PacketParser();
-            SendParser = new PacketParser();
-        }
+        private uint sendIntervalTime = TimeUitls.Now();
 
         /// <summary>
         /// 构造函数,Accept
@@ -65,13 +52,7 @@ namespace NetChannel
             socketClient = udpClient;
             RecvParser = new PacketParser();
             SendParser = new PacketParser();
-        }
 
-        /// <summary>
-        /// 实例化KCP对象
-        /// </summary>
-        public void InitKcp()
-        {
             this.kcp = new Kcp(this.Id, this.Output);
             kcp.SetMtu(512);
             kcp.NoDelay(1, 10, 2, 1);  //fast
@@ -217,7 +198,6 @@ namespace NetChannel
                     if (count > 0)
                     {
                         this.SendParser.Buffer.UpdateRead(count);
-                        //SetKcpSendTime();
                         this.LastSendTime = TimeUitls.Now();
                     }
                 }                
@@ -257,23 +237,6 @@ namespace NetChannel
         {
             this.socketClient.Client.SendTo(bytes, 0, count, SocketFlags.None, this.RemoteEndPoint);
         }
-
-        /// <summary>
-        /// 发送到KCP缓冲区中
-        /// </summary>
-        /// <param name="buffers"></param>
-        private void SendToKcp(List<byte[]> buffers)
-        {
-            foreach (var buffer in buffers)
-            {
-                if (buffer != null)
-                {
-                    kcp.Send(buffer);
-                }
-            }
-        }
-
-        private uint sendIntervalTime = TimeUitls.Now();
 
         /// <summary>
         /// 设置KCP重传时间

@@ -156,16 +156,6 @@ namespace NetChannel
             }
         }
 
-        internal void StartRecv()
-        {
-            //var channels = netService.Channels.Values;
-            //foreach (var channel in channels)
-            //{
-            //    channel.StartRecv();
-            //}
-            //(netService as KcpService).StartRecv();
-        }
-
         /// <summary>
         /// 心跳检测
         /// </summary>
@@ -189,12 +179,6 @@ namespace NetChannel
                 {
                     return;
                 }
-                //这块代码有bug，0字节检测为false时未必是断线
-                //if (!currentChannel.CheckConnection())
-                //{
-                //    LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"与服务端:{currentChannel.DefaultEndPoint}失去连接");
-                //    currentChannel.DisConnect();
-                //}
                 var timeSpan = now - currentChannel.LastSendTime;
                 if (timeSpan > HeartbeatTime)
                 {
@@ -211,7 +195,7 @@ namespace NetChannel
                 foreach(var channel in channels)
                 {
                     var timeSpan = now - channel.LastRecvTime;
-                    if (timeSpan > HeartbeatTime * 2)
+                    if (timeSpan > HeartbeatTime * 2000)
                     {
                         LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"客户端:{channel.RemoteEndPoint}连接超时，心跳检测断开，心跳时长{timeSpan}...");
                         channel.DisConnect();
