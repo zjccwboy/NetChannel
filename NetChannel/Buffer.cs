@@ -45,12 +45,12 @@ namespace NetChannel
         }
 
         /// <summary>
-        /// 指向缓冲区队列中第一个缓冲区块有效的数组下标位置
+        /// 指向缓冲区队列中第一个缓冲区块读取数据的数组下标位置
         /// </summary>
         public int FirstReadOffset;
 
         /// <summary>
-        /// 指向缓冲区队列中最后一个缓冲区块有效的数组下标位置
+        /// 指向缓冲区队列中最后一个缓冲区块写入数据的数组下标位置
         /// </summary>
         public int LastWriteOffset;
 
@@ -68,7 +68,7 @@ namespace NetChannel
 
             if (FirstReadOffset == blockSize)
             {
-                FirstReadOffset -= FirstReadOffset;
+                FirstReadOffset = 0;
                 bufferCache.Enqueue(bufferQueue.Dequeue());
             }
         }
@@ -87,7 +87,7 @@ namespace NetChannel
 
             if (LastWriteOffset == blockSize)
             {
-                LastWriteOffset -= LastWriteOffset;
+                LastWriteOffset = 0;
                 if (bufferCache.Count > 0)
                 {
                     bufferQueue.Enqueue(bufferCache.Dequeue());

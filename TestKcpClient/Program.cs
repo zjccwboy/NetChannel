@@ -41,7 +41,7 @@ namespace TestKcpClient
             }
 
             var send = new Packet { Data = BitConverter.GetBytes(166666) };
-            for (var i = 1; i <= 100; i++)
+            for (var i = 1; i <= 1; i++)
             {
                 sendCount++;
                 if (channel.Connected)
