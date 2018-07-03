@@ -19,6 +19,7 @@ namespace NetChannel
         {
             Session = session;
         }
+
         /// <summary>
         /// 连接通道池
         /// </summary>
@@ -27,7 +28,7 @@ namespace NetChannel
         /// <summary>
         /// 连接通道池
         /// </summary>
-        protected readonly ConcurrentDictionary<long, IEnumerable<IMessageHandler>> Handlers = new ConcurrentDictionary<long, IEnumerable<IMessageHandler>>();
+        public readonly ConcurrentDictionary<long, IEnumerable<IMessageHandler>> Handlers = new ConcurrentDictionary<long, IEnumerable<IMessageHandler>>();
 
         /// <summary>
         /// 消息会话
@@ -45,11 +46,24 @@ namespace NetChannel
         /// </summary>
         /// <returns></returns>
         public abstract ANetChannel Connect();
-
+        
         /// <summary>
         /// 发送队列
         /// </summary>
-        internal abstract WorkQueue SendQueue { get;}
+        public WorkQueue SendQueue { get; protected set; }
+
+        /// <summary>
+        /// 更新发送接收队列
+        /// </summary>
+        public void Update()
+        {
+            this.SendQueue.Update();
+            var channels = Channels.Values;
+            foreach (var channel in channels)
+            {
+                channel.StartRecv();
+            }
+        }
 
         /// <summary>
         /// 添加一个通讯管道到连接对象池中
@@ -60,7 +74,6 @@ namespace NetChannel
             Channels.TryAdd(channel.Id, channel);
         }
 
-        private volatile bool reConnectIsStart = false;
         /// <summary>
         /// 断线重连方法
         /// </summary>
@@ -68,25 +81,7 @@ namespace NetChannel
         /// <returns></returns>
         protected void ReConnecting(ANetChannel channel)
         {
-            if (reConnectIsStart)
-            {
-                return;
-            }
-            reConnectIsStart = true;
-            if (channel.Connected)
-            {
-                reConnectIsStart = false;
-                return;
-            }
-            LogRecord.Log(LogLevel.Info, "ReConnecting", "重新连接...");
-            Task.Delay(3000).ContinueWith((t) =>
-            {
-                reConnectIsStart = false;
-                if (!channel.Connected)
-                {
-                    ReConnecting(channel);
-                }
-            });
+
         }
 
         /// <summary>

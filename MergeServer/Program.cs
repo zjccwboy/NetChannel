@@ -18,7 +18,8 @@ namespace MergeServer
             session.Accept();
             while (true)
             {
-                session.Start();
+                session.Update();
+                OneThreadSynchronizationContext.Instance.Update();
                 Thread.Sleep(1);
             }
         }

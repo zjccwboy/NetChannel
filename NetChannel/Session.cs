@@ -51,16 +51,16 @@ namespace NetChannel
         /// <param name="endPoint"></param>
         public void Accept()
         {
-            sessionType = NetServiceType.Server;
-            if(protocalType == ProtocalType.Tcp)
+            this.sessionType = NetServiceType.Server;
+            if(this.protocalType == ProtocalType.Tcp)
             {
-                netService = new TcpService(endPoint, this);
+                this.netService = new TcpService(this.endPoint, this);
             }
-            else if(protocalType == ProtocalType.Kcp)
+            else if(this.protocalType == ProtocalType.Kcp)
             {
-                netService = new KcpService(endPoint, this, sessionType);
+                this.netService = new KcpService(this.endPoint, this, this.sessionType);
             }
-            netService.Accept();
+            this.netService.Accept();
         }
 
         /// <summary>
@@ -70,22 +70,23 @@ namespace NetChannel
         /// <returns></returns>
         public ANetChannel Connect()
         {
-            sessionType = NetServiceType.Client;
-            if (protocalType == ProtocalType.Tcp)
+            this.sessionType = NetServiceType.Client;
+            if (this.protocalType == ProtocalType.Tcp)
             {
-                netService = new TcpService(endPoint, this);
+                this.netService = new TcpService(this.endPoint, this);
             }
-            else if (protocalType == ProtocalType.Kcp)
+            else if (this.protocalType == ProtocalType.Kcp)
             {
-                netService = new KcpService(endPoint, this, sessionType);
+                this.netService = new KcpService(this.endPoint, this, this.sessionType);
             }
-            currentChannel = netService.Connect();
+            currentChannel = this.netService.Connect();
             return currentChannel;
         }
 
-        public void Start()
-        {
-            netService.SendQueue.Start();
+        public void Update()
+        {            
+            this.netService.Update();
+            OneThreadSynchronizationContext.Instance.Update();
         }
 
         /// <summary>
@@ -100,7 +101,7 @@ namespace NetChannel
                 return;
             }
 
-            netService.SendQueue.Enqueue(new SendTask
+            this.netService.SendQueue.Enqueue(new SendTask
             {
                 Channel = channel,
                 Packet = packet,
@@ -115,17 +116,17 @@ namespace NetChannel
         /// <param name="notificationAction"></param>
         public void Subscribe(Packet packet, Action<Packet> notificationAction)
         {
-            if (!currentChannel.Connected)
+            if (!this.currentChannel.Connected)
             {
                 return;
             }
 
             packet.IsRpc = true;
-            packet.RpcId = currentChannel.RpcId;
-            currentChannel.AddPacket(packet, notificationAction);
-            netService.SendQueue.Enqueue(new SendTask
+            packet.RpcId = this.currentChannel.RpcId;
+            this.currentChannel.AddPacket(packet, notificationAction);
+            this.netService.SendQueue.Enqueue(new SendTask
             {
-                Channel = currentChannel,
+                Channel = this.currentChannel,
                 Packet = packet,
             });
         }
@@ -136,24 +137,11 @@ namespace NetChannel
         /// <param name="packet"></param>
         public void SendMessage(Packet packet)
         {
-            netService.SendQueue.Enqueue(new SendTask
+            this.netService.SendQueue.Enqueue(new SendTask
             {
                 Channel = this.currentChannel,
                 Packet = packet,
             });
-        }
-
-        /// <summary>
-        /// 发送数据
-        /// </summary>
-        /// <returns></returns>
-        internal async void StartSend()
-        {
-            var channels = netService.Channels.Values;
-            foreach (var channel in channels)
-            {
-                channel.StartSend();
-            }
         }
 
         /// <summary>
@@ -163,35 +151,35 @@ namespace NetChannel
         {
             var now = TimeUitls.Now();
 
-            var lastCheckSpan = now - LastCheckTime;
+            var lastCheckSpan = now - this.LastCheckTime;
             if(lastCheckSpan < HeartbeatTime)
             {
                 return;
             }
 
-            if(sessionType == NetServiceType.Client)
+            if(this.sessionType == NetServiceType.Client)
             {
-                if(currentChannel == null)
+                if(this.currentChannel == null)
                 {
                     return;
                 }
-                if (!currentChannel.Connected)
+                if (!this.currentChannel.Connected)
                 {
                     return;
                 }
-                var timeSpan = now - currentChannel.LastSendTime;
+                var timeSpan = now - this.currentChannel.LastSendTime;
                 if (timeSpan > HeartbeatTime)
                 {
                     SendMessage(new Packet
                     {
                         IsHeartbeat = true
                     });
-                    LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"发送心跳包到服务端:{currentChannel.RemoteEndPoint}...");
+                    LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"发送心跳包到服务端:{this.currentChannel.RemoteEndPoint}...");
                 }
             }
-            else if(sessionType == NetServiceType.Server)
+            else if(this.sessionType == NetServiceType.Server)
             {
-                var channels = netService.Channels.Values;
+                var channels = this.netService.Channels.Values;
                 foreach(var channel in channels)
                 {
                     var timeSpan = now - channel.LastRecvTime;

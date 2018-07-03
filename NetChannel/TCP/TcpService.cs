@@ -22,21 +22,10 @@ namespace NetChannel
         /// <param name="session"></param>
         public TcpService(IPEndPoint endPoint, Session session) : base(session)
         {
-            sendQueue = new WorkQueue(session);
+            SendQueue = new WorkQueue(session);
             this.endPoint = endPoint;
         }
 
-        private readonly WorkQueue sendQueue;
-        /// <summary>
-        /// 合并数据包发送队列
-        /// </summary>
-        internal override WorkQueue SendQueue
-        {
-            get
-            {
-                return sendQueue;
-            }
-        }
 
         /// <summary>
         /// 开始监听并接受连接请求
@@ -105,7 +94,6 @@ namespace NetChannel
                 channel.Connected = true;
                 AddChannel(channel);
                 AddHandler(channel);
-                channel.StartRecv();
                 LogRecord.Log(LogLevel.Info, "HandleAccept", $"接受客户端:{channel.RemoteEndPoint}连接成功...");
             }
             catch (Exception e)
@@ -126,7 +114,6 @@ namespace NetChannel
                 channel.Connected = true;
                 AddChannel(channel);
                 AddHandler(channel);
-                channel.StartRecv();
                 LogRecord.Log(LogLevel.Info, "HandleConnect", $"连接服务端:{channel.RemoteEndPoint}成功...");
             }
             catch (Exception e)

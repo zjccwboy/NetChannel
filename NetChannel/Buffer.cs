@@ -148,9 +148,13 @@ namespace NetChannel
                 {
                     return size;
                 }
+                else if(bufferQueue.Count == 1)
+                {
+                    size = LastWriteOffset - FirstReadOffset;
+                }
                 else
                 {
-                    size = bufferQueue.Count * blockSize - FirstReadOffset - LastCapacity;//lastOffset - firstOffset;
+                    size = bufferQueue.Count * blockSize - FirstReadOffset - LastCapacity;
                 }
                 if (size < 0)
                 {

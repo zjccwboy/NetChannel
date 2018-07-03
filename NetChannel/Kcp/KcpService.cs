@@ -24,7 +24,7 @@ namespace NetChannel
         public KcpService(IPEndPoint endPoint, Session session, NetServiceType sessionType) : base(session)
         {
             this.endPoint = endPoint;
-            sendQueue = new WorkQueue(session);
+            SendQueue = new WorkQueue(session);
             if(sessionType == NetServiceType.Server)
             {
                 this.udpClient = new UdpClient(endPoint);
@@ -40,17 +40,6 @@ namespace NetChannel
             StartRecv();
         }
 
-        private readonly WorkQueue sendQueue;
-        /// <summary>
-        /// 合并数据包发送队列
-        /// </summary>
-        internal override WorkQueue SendQueue
-        {
-            get
-            {
-                return sendQueue;
-            }
-        }
 
         /// <summary>
         /// 开始监听并接受连接请求

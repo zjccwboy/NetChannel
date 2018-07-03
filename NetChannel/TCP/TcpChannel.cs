@@ -16,15 +16,18 @@ namespace NetChannel
         private SocketAsyncEventArgs outArgs = new SocketAsyncEventArgs();
 
         /// <summary>
+        /// 接收状态机
+        /// </summary>
+        private bool isReceiving;
+
+        /// <summary>
         /// 构造函数,Connect
         /// </summary>
         /// <param name="endPoint">Ip/端口</param>
         /// <param name="netService">通讯网络服务对象</param>
-        public TcpChannel(IPEndPoint endPoint, ANetService netService) : base(netService)
+        public TcpChannel(IPEndPoint endPoint, ANetService netService) : this(netService)
         {
             this.RemoteEndPoint = endPoint;
-            this.inArgs.Completed += OnComplete;
-            this.outArgs.Completed += OnComplete;
         }
 
         /// <summary>
@@ -33,10 +36,18 @@ namespace NetChannel
         /// <param name="endPoint">IP/端口</param>
         /// <param name="socket">TCP socket类</param>
         /// <param name="netService">通讯网络服务对象</param>
-        public TcpChannel(IPEndPoint endPoint, Socket socket, ANetService netService) : base(netService)
+        public TcpChannel(IPEndPoint endPoint, Socket socket, ANetService netService) : this(netService)
         {
             this.LocalEndPoint = endPoint;
             this.NetSocket = socket;
+        }
+
+        /// <summary>
+        /// 私有构造函数
+        /// </summary>
+        /// <param name="netService"></param>
+        private TcpChannel(ANetService netService) : base(netService)
+        {
             this.inArgs.Completed += OnComplete;
             this.outArgs.Completed += OnComplete;
         }
@@ -49,6 +60,17 @@ namespace NetChannel
         {
             try
             {
+                if (Connected)
+                {
+                    return;
+                }
+
+                if(this.NetSocket == null)
+                {
+                    this.NetSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                    this.NetSocket.NoDelay = true;
+                }
+
                 this.outArgs.RemoteEndPoint = this.RemoteEndPoint;
                 if (this.NetSocket.ConnectAsync(this.outArgs))
                 {
@@ -107,12 +129,17 @@ namespace NetChannel
         {
             try
             {
-                while(SendParser.Buffer.DataSize > 0)
+                if (!Connected)
                 {
-                    this.outArgs.SetBuffer(RecvParser.Buffer.First, RecvParser.Buffer.FirstReadOffset, RecvParser.Buffer.FirstDataSize);
+                    return;
+                }
+
+                while (SendParser.Buffer.DataSize > 0)
+                {
+                    this.outArgs.SetBuffer(SendParser.Buffer.First, SendParser.Buffer.FirstReadOffset, SendParser.Buffer.FirstDataSize);
                     if (this.NetSocket.SendAsync(this.outArgs))
                     {
-                        return;
+                        break;
                     }
                     OnSendComplete(this.outArgs);
                 }
@@ -125,23 +152,22 @@ namespace NetChannel
         }
 
         /// <summary>
-        /// 添加一个发送数据包到发送缓冲区队列中
-        /// </summary>
-        /// <param name="packet">发送数据包</param>
-        /// <param name="recvAction">请求回调方法</param>
-        /// <returns></returns>
-        public override void AddPacket(Packet packet, Action<Packet> recvAction)
-        {
-            RpcDictionarys.TryAdd(packet.RpcId, recvAction);
-        }
-
-        /// <summary>
         /// 接收数据
         /// </summary>
         public override void StartRecv()
         {
             try
             {
+                if (!Connected)
+                {
+                    return;
+                }
+
+                if (isReceiving)
+                {
+                    return;
+                }
+                isReceiving = true;
                 this.inArgs.SetBuffer(RecvParser.Buffer.Last, RecvParser.Buffer.LastWriteOffset, RecvParser.Buffer.LastCapacity);
                 if (this.NetSocket.ReceiveAsync(this.inArgs))
                 {
@@ -151,6 +177,7 @@ namespace NetChannel
             }
             catch (Exception e)
             {
+                isReceiving = true;
                 LogRecord.Log(LogLevel.Warn, "StartRecv", e.ConvertToJson());
                 HandleError();
             }
@@ -173,6 +200,11 @@ namespace NetChannel
             try
             {
                 Connected = false;
+                if (NetSocket == null)
+                {
+
+                    return;
+                }
                 OnDisConnect?.Invoke(this);
             }
             catch { }
@@ -223,6 +255,7 @@ namespace NetChannel
 
             e.RemoteEndPoint = null;
             this.Connected = true;
+            OnConnect?.Invoke(this);
 
             this.StartRecv();
             this.StartSend();
@@ -236,6 +269,7 @@ namespace NetChannel
 
         private void OnRecvComplete(object o)
         {
+            isReceiving = false;
             if (this.NetSocket == null)
             {
                 return;
@@ -284,7 +318,7 @@ namespace NetChannel
                     }
                 }
             }
-            this.StartRecv();
+            //this.StartRecv();
         }
 
         private void OnSendComplete(object o)
@@ -302,6 +336,10 @@ namespace NetChannel
             }
 
             this.SendParser.Buffer.UpdateRead(e.BytesTransferred);
+            if(this.SendParser.Buffer.DataSize <= 0)
+            {
+                return;
+            }
 
             this.StartSend();
         }

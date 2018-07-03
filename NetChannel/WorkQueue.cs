@@ -1,6 +1,7 @@
 ﻿using Common;
 using System;
 using System.Collections.Concurrent;
+using System.Collections.Generic;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -9,7 +10,7 @@ namespace NetChannel
     /// <summary>
     /// 发送任务
     /// </summary>
-    internal class SendTask
+    public class SendTask
     {
         /// <summary>
         /// 通讯管道对象
@@ -33,9 +34,10 @@ namespace NetChannel
     /// <summary>
     /// 一个双缓冲生产消费队列，用于合并发送包
     /// </summary>
-    internal class WorkQueue
+    public class WorkQueue
     {
-        private ConcurrentQueue<SendTask> sendQueue = new ConcurrentQueue<SendTask>();
+        private readonly ConcurrentQueue<SendTask> sendQueue = new ConcurrentQueue<SendTask>();
+        private readonly HashSet<ANetChannel> channels = new HashSet<ANetChannel>();
         private readonly Session session;
 
         /// <summary>
@@ -48,46 +50,47 @@ namespace NetChannel
         }
 
         /// <summary>
-        /// 开始启动发送线程
-        /// </summary>
-        public void Start()
-        {
-            HandleSend();
-        }
-
-        /// <summary>
         /// 插入一个数据包到发送队列中
         /// </summary>
         /// <param name="sendTask"></param>
         public void Enqueue(SendTask sendTask)
         {
-            sendQueue.Enqueue(sendTask);
+            this.sendQueue.Enqueue(sendTask);
         }
+
 
         /// <summary>
         /// 处理数据发送回调函数
         /// </summary>
-        private void HandleSend()
+        public void Update()
         {
             try
             {
-
-                while (!sendQueue.IsEmpty)
+                while (!this.sendQueue.IsEmpty)
                 {
-                    if(sendQueue.TryDequeue(out SendTask send))
+                    if(this.sendQueue.TryDequeue(out SendTask send))
                     {
                         send.WriteToBuffer();
+                        this.channels.Add(send.Channel);
                     }
                 }
 
-                //发送出去
-                session.StartSend();
-                session.CheckHeadbeat();
+                this.StartSend();
+                this.session.CheckHeadbeat();
             }
             catch(Exception e)
             {
                 LogRecord.Log(LogLevel.Warn, "HandleSend", e);
             }
+        }
+
+        private void StartSend()
+        {
+            foreach(var channel in this.channels)
+            {
+                channel.StartSend();
+            }
+            this.channels.Clear();
         }
     }
 }

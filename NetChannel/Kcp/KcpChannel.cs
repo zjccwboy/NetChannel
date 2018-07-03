@@ -59,16 +59,6 @@ namespace NetChannel
         }
 
         /// <summary>
-        /// 添加一个发送数据包到发送缓冲区队列中
-        /// </summary>
-        /// <param name="packet"></param>
-        /// <param name="recvAction"></param>
-        public override void AddPacket(Packet packet, Action<Packet> recvAction)
-        {
-            RpcDictionarys.TryAdd(packet.RpcId, recvAction);
-        }
-
-        /// <summary>
         /// 查看当前连接状态
         /// </summary>
         /// <returns></returns>

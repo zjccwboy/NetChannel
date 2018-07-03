@@ -22,7 +22,7 @@ namespace TestKcpClient
             while (true)
             {
                 Subscribe(session, channel);
-                session.Start();
+                session.Update();
                 Thread.Sleep(1);
             }
         }

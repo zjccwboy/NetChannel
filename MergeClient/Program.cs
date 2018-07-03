@@ -24,7 +24,7 @@ namespace MergeClient
             while (true)
             {
                 Subscribe(session, channel);
-                session.Start();
+                session.Update();
                 Thread.Sleep(1);
             }
         }
@@ -42,15 +42,16 @@ namespace MergeClient
             }
 
             var send = new Packet { Data = Encoding.UTF8.GetBytes("111111111122222222223333333333444444444455555555556666666666777777777788888888889999999999") };
-            for (var i = 1; i <= 100; i++)
+            for (var i = 1; i <= 1000; i++)
             {
-                sendCount++;
                 if (channel.Connected)
                 {
+                    sendCount++;
                     session.Subscribe(send, (packet) =>
                     {
                         recvCount++;
                         var data = Encoding.UTF8.GetString(packet.Data);//BitConverter.ToInt32(packet.Data, 0);
+                        //Console.WriteLine($"接收数据包:{data}");
                         if (data != "111111111122222222223333333333444444444455555555556666666666777777777788888888889999999999")
                         {
                             Console.WriteLine($"解包出错:{data}");
@@ -63,10 +64,6 @@ namespace MergeClient
                             stopwatch.Restart();
                         }
                     });
-                }
-                else
-                {
-                    LogRecord.Log(LogLevel.Info, "连接断开", $"本地端口:{channel.LocalEndPoint}");
                 }
             }
         }

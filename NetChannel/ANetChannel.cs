@@ -13,12 +13,22 @@ namespace NetChannel
     public abstract class ANetChannel
     {
         /// <summary>
+        /// 构造函数
+        /// </summary>
+        /// <param name="netService">网络通讯服务对象</param>
+        public ANetChannel(ANetService netService)
+        {
+            this.netService = netService;
+            Id = ChannelIdCreator.CreateId();
+        }
+
+        /// <summary>
         /// 通讯管道Id标识
         /// </summary>
         public uint Id { get; protected set; }
 
         /// <summary>
-        /// TCP Socket socketClient
+        /// Socket
         /// </summary>
         public Socket NetSocket { get; protected set; }
 
@@ -31,16 +41,6 @@ namespace NetChannel
         /// 发送包缓冲区解析器
         /// </summary>
         protected PacketParser SendParser = new PacketParser();
-
-        /// <summary>
-        /// 构造函数
-        /// </summary>
-        /// <param name="netService">网络通讯服务对象</param>
-        public ANetChannel(ANetService netService)
-        {
-            this.netService = netService;
-            Id = ChannelIdCreator.CreateId();
-        }
 
         /// <summary>
         /// 构造函数
@@ -151,13 +151,6 @@ namespace NetChannel
         public abstract void DisConnect();
 
         /// <summary>
-        /// 添加一个发送数据包到发送缓冲区队列中
-        /// </summary>
-        /// <param name="packet"></param>
-        /// <param name="recvAction"></param>
-        public abstract void AddPacket(Packet packet, Action<Packet> recvAction);
-
-        /// <summary>
         /// 把发送数据包写到缓冲区
         /// </summary>
         /// <param name="packet"></param>
@@ -174,5 +167,15 @@ namespace NetChannel
         /// </summary>
         /// <returns></returns>
         public abstract void StartRecv();
+
+        /// <summary>
+        /// 添加一个发送数据包到发送缓冲区队列中
+        /// </summary>
+        /// <param name="packet"></param>
+        /// <param name="recvAction"></param>
+        public void AddPacket(Packet packet, Action<Packet> recvAction)
+        {
+            RpcDictionarys.TryAdd(packet.RpcId, recvAction);
+        }
     }
 }

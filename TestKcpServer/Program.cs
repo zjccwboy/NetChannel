@@ -18,7 +18,7 @@ namespace TestKcpServer
             session.Accept();
             while (true)
             {
-                session.Start();
+                session.Update();
                 Thread.Sleep(1);
             }
         }
