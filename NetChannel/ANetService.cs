@@ -79,12 +79,6 @@ namespace NetChannel
                 return;
             }
             LogRecord.Log(LogLevel.Info, "ReConnecting", "重新连接...");
-            var isConnected = channel.ReConnecting();
-            if (isConnected)
-            {
-                reConnectIsStart = false;
-                return;
-            }
             Task.Delay(3000).ContinueWith((t) =>
             {
                 reConnectIsStart = false;

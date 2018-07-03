@@ -56,37 +56,20 @@ namespace NetChannel
         /// 开始监听并接受连接请求
         /// </summary>
         /// <returns></returns>
-        public override Task AcceptAsync()
+        public override void Accept()
         {
-            return Task.CompletedTask;
+
         }
 
         /// <summary>
         /// 发送连接请求
         /// </summary>
         /// <returns></returns>
-        public override async Task<ANetChannel> ConnectAsync()
+        public override ANetChannel Connect()
         {
             ConnectSender.SendSYN(this.udpClient, endPoint);
-            var connected = false;
-            //var cancellationToken = new System.Threading.CancellationTokenSource(3000);
-            //var registration = cancellationToken.Token.Register(() =>
-            //{
-            //    if (!connected)
-            //    {
-            //        var kcpChannel = new KcpChannel(endPoint, this.udpClient, this);
-            //        tcs.TrySetResult(kcpChannel);
-            //    }
-            //});
-            tcs = new TaskCompletionSource<KcpChannel>();
-            var channel = await tcs.Task;
-            currentChannel = channel;
-            connected = channel.Connected;
-            if (!channel.Connected)
-            {
-                await channel.ReConnecting();
-            }
-            return channel;
+
+            return new KcpChannel(new UdpReceiveResult(), this.udpClient, this, 1000);
         }
 
         /// <summary>

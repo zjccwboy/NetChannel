@@ -17,12 +17,11 @@ namespace TestKcpClient
         {
             var endPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8989);
             var session = new Session(endPoint, ProtocalType.Kcp);
-            var task = session.Connect(); ;
-            task.Wait();
+            var channel = session.Connect(); ;
             stopwatch.Start();
             while (true)
             {
-                Subscribe(session, task.Result);
+                Subscribe(session, channel);
                 session.Start();
                 Thread.Sleep(1);
             }

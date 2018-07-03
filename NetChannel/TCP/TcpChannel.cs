@@ -66,12 +66,11 @@ namespace NetChannel
         /// 重连
         /// </summary>
         /// <returns></returns>
-        public override bool ReConnecting()
+        public override void ReConnecting()
         {
             DisConnect();
             Connected = false;
             StartConnecting();
-            return Connected;
         }
 
         /// <summary>

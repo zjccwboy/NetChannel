@@ -81,26 +81,24 @@ namespace NetChannel
         /// 重新连接
         /// </summary>
         /// <returns></returns>
-        public override async Task<bool> ReConnecting()
+        public override void ReConnecting()
         {
-            return await StartConnecting();
+            StartConnecting();
         }
 
         /// <summary>
         /// 模拟TCP三次握手连接服务端
         /// </summary>
         /// <returns></returns>
-        public override async Task<bool> StartConnecting()
+        public override void StartConnecting()
         {
             try
             {
                 ConnectSender.SendSYN(this.socketClient, this.RemoteEndPoint);
-                return false;
             }
             catch (Exception e)
             {
                 LogRecord.Log(LogLevel.Warn, "StartConnecting", e);
-                return false;
             }
         }
 
@@ -185,7 +183,7 @@ namespace NetChannel
         /// 开始发送KCP数据包
         /// </summary>
         /// <returns></returns>
-        public override Task StartSend()
+        public override void StartSend()
         {
             if (Connected)
             {
@@ -203,7 +201,6 @@ namespace NetChannel
                 }                
             }
             SetKcpSendTime();
-            return Task.CompletedTask;
         }
 
         /// <summary>

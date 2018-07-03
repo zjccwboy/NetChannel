@@ -18,13 +18,12 @@ namespace MergeClient
         {
             var endPoint = new IPEndPoint(IPAddress.Parse("127.0.0.1"), 8989);
             var session = new Session(endPoint, ProtocalType.Tcp);
-            var task = session.Connect(); ;
-            task.Wait();
+            var channel = session.Connect(); ;
             stopwatch.Start();
             Console.WriteLine($"当前线程ID:{Thread.CurrentThread.ManagedThreadId}");
             while (true)
             {
-                Subscribe(session, task.Result);
+                Subscribe(session, channel);
                 session.Start();
                 Thread.Sleep(1);
             }

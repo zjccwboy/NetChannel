@@ -143,7 +143,7 @@ namespace NetChannel
         /// 重新连接
         /// </summary>
         /// <returns></returns>
-        public abstract bool ReConnecting();
+        public abstract void ReConnecting();
 
         /// <summary>
         /// 断开连接
