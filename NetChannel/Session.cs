@@ -85,8 +85,8 @@ namespace NetChannel
 
         public void Update()
         {
-            OneThreadSynchronizationContext.Instance.Update();
             this.netService.Update();
+            OneThreadSynchronizationContext.Instance.Update();
         }
 
         /// <summary>
