@@ -11,8 +11,9 @@ namespace NetChannel
     /// </summary>
     public class TcpService : ANetService
     {
-        private TcpListener tcpListener;
         private IPEndPoint endPoint;
+        private Socket acceptor;
+        private readonly SocketAsyncEventArgs innArgs = new SocketAsyncEventArgs();
 
         /// <summary>
         /// 构造函数
@@ -41,46 +42,54 @@ namespace NetChannel
         /// 开始监听并接受连接请求
         /// </summary>
         /// <returns></returns>
-        public override async Task AcceptAsync()
+        public override void Accept()
         {
-            if(tcpListener == null)
+            if(acceptor == null)
             {
-                tcpListener = new TcpListener(endPoint);
-                tcpListener.Server.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-                tcpListener.Server.NoDelay = true;
-                tcpListener.Start();
+                this.acceptor = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
+                this.acceptor.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
+                this.innArgs.Completed += this.OnAcceptComplete;
+
+                this.acceptor.Bind(this.endPoint);
+                this.acceptor.Listen(1000);
             }
 
-            while (true)
+            this.innArgs.AcceptSocket = null;
+            if (this.acceptor.AcceptAsync(this.innArgs))
             {
-                try
-                {
-                    var client = await tcpListener.AcceptTcpClientAsync();
-                    var channel = new TcpChannel(endPoint, client, this);
-                    channel.RemoteEndPoint = client.Client.RemoteEndPoint as IPEndPoint;
-                    channel.OnConnect = HandleAccept;
-                    channel.OnConnect?.Invoke(channel);
-                }
-                catch(Exception e)
-                {
-                    Console.WriteLine(e.ToString());
-                }
+                return;
             }
+            OnAcceptComplete(this, this.innArgs);
+        }
+
+        private void OnAcceptComplete(object sender, SocketAsyncEventArgs o)
+        {
+            if (this.acceptor == null)
+            {
+                return;
+            }
+            SocketAsyncEventArgs e = o;
+
+            if (e.SocketError != SocketError.Success)
+            {
+                LogRecord.Log(LogLevel.Warn, "OnAcceptComplete", $"accept error {e.SocketError}");
+                return;
+            }
+            var channel = new TcpChannel(this.endPoint, e.AcceptSocket, this);
+            HandleAccept(channel);
+
+            this.Accept();
         }
 
         /// <summary>
         /// 发送连接请求
         /// </summary>
         /// <returns></returns>
-        public override async Task<ANetChannel> ConnectAsync()
+        public override ANetChannel Connect()
         {
             var channel = new TcpChannel(endPoint, this);
             channel.OnConnect = HandleConnect;
-            var isConnected = await channel.StartConnecting();
-            if (!isConnected)
-            {
-                await ReConnecting(channel);
-            }
+            channel.StartConnecting();
             return channel;
         }
 

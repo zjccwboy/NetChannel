@@ -3,6 +3,7 @@ using System.Threading.Tasks;
 using System.Net.Sockets;
 using System.Net;
 using Common;
+using System.Threading;
 
 namespace NetChannel
 {
@@ -11,10 +12,8 @@ namespace NetChannel
     /// </summary>
     public class TcpChannel : ANetChannel
     {
-        /// <summary>
-        /// TCP Socket socketClient
-        /// </summary>
-        private TcpClient socketClient;
+        private SocketAsyncEventArgs inArgs = new SocketAsyncEventArgs();
+        private SocketAsyncEventArgs outArgs = new SocketAsyncEventArgs();
 
         /// <summary>
         /// 构造函数,Connect
@@ -23,45 +22,43 @@ namespace NetChannel
         /// <param name="netService">通讯网络服务对象</param>
         public TcpChannel(IPEndPoint endPoint, ANetService netService) : base(netService)
         {
-            this.RemoteEndPoint = endPoint as IPEndPoint;
-            RecvParser = new PacketParser();
-            SendParser = new PacketParser();
+            this.RemoteEndPoint = endPoint;
+            this.inArgs.Completed += OnComplete;
+            this.outArgs.Completed += OnComplete;
         }
 
         /// <summary>
         /// 构造函数,Accept
         /// </summary>
         /// <param name="endPoint">IP/端口</param>
-        /// <param name="tcpClient">TCP socket类</param>
+        /// <param name="socket">TCP socket类</param>
         /// <param name="netService">通讯网络服务对象</param>
-        public TcpChannel(IPEndPoint endPoint, TcpClient tcpClient, ANetService netService) : base(netService)
+        public TcpChannel(IPEndPoint endPoint, Socket socket, ANetService netService) : base(netService)
         {
-            this.LocalEndPoint = endPoint as IPEndPoint;
-            RecvParser = new PacketParser();
-            SendParser = new PacketParser();
-            socketClient = tcpClient;
+            this.LocalEndPoint = endPoint;
+            this.NetSocket = socket;
+            this.inArgs.Completed += OnComplete;
+            this.outArgs.Completed += OnComplete;
         }
 
         /// <summary>
         /// 开始连接
         /// </summary>
         /// <returns></returns>
-        public override async Task<bool> StartConnecting()
+        public override void StartConnecting()
         {
             try
             {
-                socketClient = socketClient ?? new TcpClient();
-                socketClient.NoDelay = true;
-                await socketClient.ConnectAsync(RemoteEndPoint.Address, RemoteEndPoint.Port);
-                Connected = true;
-                LocalEndPoint = socketClient.Client.LocalEndPoint as IPEndPoint;
-                OnConnect?.Invoke(this);
-                return Connected;
+                this.outArgs.RemoteEndPoint = this.RemoteEndPoint;
+                if (this.NetSocket.ConnectAsync(this.outArgs))
+                {
+                    return;
+                }
+                OnConnectComplete(this.outArgs);
             }
             catch (Exception e)
             {
                 LogRecord.Log(LogLevel.Warn, "StartConnecting", e.ConvertToJson());
-                return false;
             }
         }
 
@@ -69,11 +66,12 @@ namespace NetChannel
         /// 重连
         /// </summary>
         /// <returns></returns>
-        public override async Task<bool> ReConnecting()
+        public override bool ReConnecting()
         {
             DisConnect();
             Connected = false;
-            return await StartConnecting();
+            StartConnecting();
+            return Connected;
         }
 
         /// <summary>
@@ -84,7 +82,7 @@ namespace NetChannel
         {
             try
             {
-                return !((socketClient.Client.Poll(1000, SelectMode.SelectRead) && (socketClient.Client.Available == 0)));                
+                return !((NetSocket.Poll(1000, SelectMode.SelectRead) && (NetSocket.Available == 0)));                
             }
             catch (Exception e)
             {
@@ -106,36 +104,18 @@ namespace NetChannel
         /// 发送缓冲区队列中的数据(合并发送)
         /// </summary>
         /// <returns></returns>
-        public override async Task StartSend()
+        public override void StartSend()
         {
             try
             {
-                if (!socketClient.Connected)
+                while(SendParser.Buffer.DataSize > 0)
                 {
-                    return;
-                }
-
-                if (!Connected)
-                {
-                    return;
-                }
-
-                LastSendTime = TimeUitls.Now();
-                var netStream = socketClient.GetStream();
-
-                if (netStream == null)
-                {
-                    return;
-                }
-
-                while (SendParser.Buffer.DataSize > 0)
-                {
-                    if (!netStream.CanWrite)
+                    this.outArgs.SetBuffer(RecvParser.Buffer.First, RecvParser.Buffer.FirstReadOffset, RecvParser.Buffer.FirstDataSize);
+                    if (this.NetSocket.SendAsync(this.outArgs))
                     {
                         return;
                     }
-                    await netStream.WriteAsync(SendParser.Buffer.First, SendParser.Buffer.FirstReadOffset, SendParser.Buffer.FirstDataSize);
-                    SendParser.Buffer.UpdateRead(SendParser.Buffer.FirstDataSize);
+                    OnSendComplete(this.outArgs);
                 }
             }
             catch (Exception e)
@@ -159,63 +139,16 @@ namespace NetChannel
         /// <summary>
         /// 接收数据
         /// </summary>
-        public override async void StartRecv()
+        public override void StartRecv()
         {
             try
             {
-                while (true)
+                this.inArgs.SetBuffer(RecvParser.Buffer.Last, RecvParser.Buffer.LastWriteOffset, RecvParser.Buffer.LastCapacity);
+                if (this.NetSocket.ReceiveAsync(this.inArgs))
                 {
-                    var netStream = socketClient.GetStream();
-                    if (netStream == null)
-                    {
-                        return;
-                    }
-
-                    if (!netStream.CanRead)
-                    {
-                        return;
-                    }
-
-                    var count = await netStream.ReadAsync(RecvParser.Buffer.Last, RecvParser.Buffer.LastWriteOffset, RecvParser.Buffer.LastCapacity);
-                    if (count <= 0)
-                    {
-                        HandleError();
-                        return;
-                    }
-                    RecvParser.Buffer.UpdateWrite(count);
-                    while (true)
-                    {
-                        var packet = RecvParser.ReadBuffer();
-                        if (!packet.IsSuccess)
-                        {
-                            break;
-                        }
-                        LastRecvTime = TimeUitls.Now();
-                        if (!packet.IsHeartbeat)
-                        {
-                            if (packet.IsRpc)
-                            {
-                                if (RpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
-                                {
-                                    //执行RPC请求回调
-                                    action(packet);
-                                }
-                                else
-                                {
-                                    OnReceive?.Invoke(packet);
-                                }
-                            }
-                            else
-                            {
-                                OnReceive?.Invoke(packet);
-                            }
-                        }
-                        else
-                        {
-                            //Console.WriteLine($"接收到客户端:{RemoteEndPoint}心跳包...");
-                        }
-                    }
+                    return;
                 }
+                OnRecvComplete(this.inArgs);
             }
             catch (Exception e)
             {
@@ -230,7 +163,7 @@ namespace NetChannel
         private void HandleError()
         {
             DisConnect();
-            OnError?.Invoke(this);
+            OnError?.Invoke(this, SocketError.SocketError);
         }
 
         /// <summary>
@@ -242,20 +175,136 @@ namespace NetChannel
             {
                 Connected = false;
                 OnDisConnect?.Invoke(this);
-                var netStream = socketClient.GetStream();
-                netStream.Close();
-                netStream.Dispose();
             }
             catch { }
 
             try
             {
-                var socket = socketClient;
-                socketClient = null;
-                socket.Close();
-                socket.Dispose();
+                NetSocket.Close();
+                NetSocket.Dispose();
+                NetSocket = null;
             }
             catch { }
+        }
+
+        private void OnComplete(object sender, SocketAsyncEventArgs e)
+        {
+            switch (e.LastOperation)
+            {
+                case SocketAsyncOperation.Connect:
+                    OneThreadSynchronizationContext.Instance.Post(this.OnConnectComplete, e);
+                    break;
+                case SocketAsyncOperation.Receive:
+                    OneThreadSynchronizationContext.Instance.Post(this.OnRecvComplete, e);
+                    break;
+                case SocketAsyncOperation.Send:
+                    OneThreadSynchronizationContext.Instance.Post(this.OnSendComplete, e);
+                    break;
+                case SocketAsyncOperation.Disconnect:
+                    OneThreadSynchronizationContext.Instance.Post(this.OnDisconnectComplete, e);
+                    break;
+                default:
+                    throw new Exception($"socket error: {e.LastOperation}");
+            }
+        }
+
+        private void OnConnectComplete(object o)
+        {
+            if (this.NetSocket == null)
+            {
+                return;
+            }
+
+            SocketAsyncEventArgs e = (SocketAsyncEventArgs)o;
+            if (e.SocketError != SocketError.Success)
+            {
+                this.HandleError();
+                return;
+            }
+
+            e.RemoteEndPoint = null;
+            this.Connected = true;
+
+            this.StartRecv();
+            this.StartSend();
+        }
+
+        private void OnDisconnectComplete(object o)
+        {
+            SocketAsyncEventArgs e = (SocketAsyncEventArgs)o;
+            this.HandleError();
+        }
+
+        private void OnRecvComplete(object o)
+        {
+            if (this.NetSocket == null)
+            {
+                return;
+            }
+
+            SocketAsyncEventArgs e = (SocketAsyncEventArgs)o;
+
+            if (e.SocketError != SocketError.Success)
+            {
+                this.HandleError();
+                return;
+            }
+
+            if (e.BytesTransferred == 0)
+            {
+                this.HandleError();
+                return;
+            }
+            RecvParser.Buffer.UpdateWrite(e.BytesTransferred);
+
+            while (true)
+            {
+                var packet = RecvParser.ReadBuffer();
+                if (!packet.IsSuccess)
+                {
+                    break;
+                }
+                LastRecvTime = TimeUitls.Now();
+                if (!packet.IsHeartbeat)
+                {
+                    if (packet.IsRpc)
+                    {
+                        if (RpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
+                        {
+                            //执行RPC请求回调
+                            action(packet);
+                        }
+                        else
+                        {
+                            OnReceive?.Invoke(packet);
+                        }
+                    }
+                    else
+                    {
+                        OnReceive?.Invoke(packet);
+                    }
+                }
+            }
+            this.StartRecv();
+        }
+
+        private void OnSendComplete(object o)
+        {
+            if (this.NetSocket == null)
+            {
+                return;
+            }
+            SocketAsyncEventArgs e = (SocketAsyncEventArgs)o;
+
+            if (e.SocketError != SocketError.Success)
+            {
+                this.OnError(this, e.SocketError);
+                return;
+            }
+
+            this.SendParser.Buffer.UpdateRead(e.BytesTransferred);
+
+            this.StartSend();
         }
     }
 }

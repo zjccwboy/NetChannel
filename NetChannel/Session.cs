@@ -49,7 +49,7 @@ namespace NetChannel
         /// 开始监听并接受客户端连接
         /// </summary>
         /// <param name="endPoint"></param>
-        public async void Accept()
+        public void Accept()
         {
             sessionType = NetServiceType.Server;
             if(protocalType == ProtocalType.Tcp)
@@ -60,7 +60,7 @@ namespace NetChannel
             {
                 netService = new KcpService(endPoint, this, sessionType);
             }
-            await netService.AcceptAsync();
+            netService.Accept();
         }
 
         /// <summary>
@@ -68,7 +68,7 @@ namespace NetChannel
         /// </summary>
         /// <param name="endPoint"></param>
         /// <returns></returns>
-        public async Task<ANetChannel> Connect()
+        public ANetChannel Connect()
         {
             sessionType = NetServiceType.Client;
             if (protocalType == ProtocalType.Tcp)
@@ -79,7 +79,7 @@ namespace NetChannel
             {
                 netService = new KcpService(endPoint, this, sessionType);
             }
-            currentChannel = await netService.ConnectAsync();
+            currentChannel = netService.Connect();
             return currentChannel;
         }
 
@@ -147,12 +147,12 @@ namespace NetChannel
         /// 发送数据
         /// </summary>
         /// <returns></returns>
-        internal async Task StartSend()
+        internal async void StartSend()
         {
             var channels = netService.Channels.Values;
             foreach (var channel in channels)
             {
-                await channel.StartSend();
+                channel.StartSend();
             }
         }
 

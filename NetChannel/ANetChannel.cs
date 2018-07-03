@@ -1,6 +1,7 @@
 ﻿using System;
 using System.Collections.Concurrent;
 using System.Net;
+using System.Net.Sockets;
 using System.Threading;
 using System.Threading.Tasks;
 
@@ -17,14 +18,19 @@ namespace NetChannel
         public uint Id { get; protected set; }
 
         /// <summary>
+        /// TCP Socket socketClient
+        /// </summary>
+        public Socket NetSocket { get; protected set; }
+
+        /// <summary>
         /// 接收包缓冲区解析器
         /// </summary>
-        protected PacketParser RecvParser;
+        protected PacketParser RecvParser = new PacketParser();
 
         /// <summary>
         /// 发送包缓冲区解析器
         /// </summary>
-        protected PacketParser SendParser;
+        protected PacketParser SendParser = new PacketParser();
 
         /// <summary>
         /// 构造函数
@@ -104,7 +110,7 @@ namespace NetChannel
         /// <summary>
         /// 错误回调事件
         /// </summary>
-        public Action<ANetChannel> OnError;
+        public Action<ANetChannel, SocketError> OnError;
 
         /// <summary>
         /// 连接成功回调
@@ -125,7 +131,7 @@ namespace NetChannel
         /// 开始连接
         /// </summary>
         /// <returns></returns>
-        public abstract Task<bool> StartConnecting();
+        public abstract void StartConnecting();
 
         /// <summary>
         /// 连接检测
@@ -137,7 +143,7 @@ namespace NetChannel
         /// 重新连接
         /// </summary>
         /// <returns></returns>
-        public abstract Task<bool> ReConnecting();
+        public abstract bool ReConnecting();
 
         /// <summary>
         /// 断开连接
@@ -161,7 +167,7 @@ namespace NetChannel
         /// <summary>
         /// 开始发送
         /// </summary>
-        public abstract Task StartSend();
+        public abstract void StartSend();
 
         /// <summary>
         /// 开始接收数据

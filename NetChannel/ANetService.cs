@@ -38,13 +38,13 @@ namespace NetChannel
         /// 监听并接受Socket连接
         /// </summary>
         /// <returns></returns>
-        public abstract Task AcceptAsync();
+        public abstract void Accept();
 
         /// <summary>
         /// 发送连接请求与创建连接
         /// </summary>
         /// <returns></returns>
-        public abstract Task<ANetChannel> ConnectAsync();
+        public abstract ANetChannel Connect();
 
         /// <summary>
         /// 发送队列
@@ -66,7 +66,7 @@ namespace NetChannel
         /// </summary>
         /// <param name="channel"></param>
         /// <returns></returns>
-        protected async Task ReConnecting(ANetChannel channel)
+        protected void ReConnecting(ANetChannel channel)
         {
             if (reConnectIsStart)
             {
@@ -79,18 +79,18 @@ namespace NetChannel
                 return;
             }
             LogRecord.Log(LogLevel.Info, "ReConnecting", "重新连接...");
-            var isConnected = await channel.ReConnecting();
+            var isConnected = channel.ReConnecting();
             if (isConnected)
             {
                 reConnectIsStart = false;
                 return;
             }
-            await Task.Delay(3000).ContinueWith(async (t) =>
+            Task.Delay(3000).ContinueWith((t) =>
             {
                 reConnectIsStart = false;
                 if (!channel.Connected)
                 {
-                    await ReConnecting(channel);
+                    ReConnecting(channel);
                 }
             });
         }
@@ -132,14 +132,14 @@ namespace NetChannel
         /// 处理连接断开(客户端)
         /// </summary>
         /// <param name="channel"></param>
-        protected async void HandleDisConnectOnClient(ANetChannel channel)
+        protected void HandleDisConnectOnClient(ANetChannel channel)
         {
             try
             {
                 if (Channels.TryRemove(channel.Id, out ANetChannel valu))
                 {
                     LogRecord.Log(LogLevel.Info, "HandleDisConnectOnClient", $"与服务端{channel.RemoteEndPoint}连接断开...");
-                    await ReConnecting(channel);
+                    ReConnecting(channel);
                 }
             }
             catch (Exception e)

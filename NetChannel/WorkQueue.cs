@@ -50,9 +50,9 @@ namespace NetChannel
         /// <summary>
         /// 开始启动发送线程
         /// </summary>
-        public async void Start()
+        public void Start()
         {
-            await HandleSend();
+            HandleSend();
         }
 
         /// <summary>
@@ -67,7 +67,7 @@ namespace NetChannel
         /// <summary>
         /// 处理数据发送回调函数
         /// </summary>
-        private async Task HandleSend()
+        private void HandleSend()
         {
             try
             {
@@ -81,7 +81,7 @@ namespace NetChannel
                 }
 
                 //发送出去
-                await session.StartSend();
+                session.StartSend();
                 session.CheckHeadbeat();
             }
             catch(Exception e)
