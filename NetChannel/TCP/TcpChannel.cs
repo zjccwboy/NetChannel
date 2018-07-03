@@ -167,6 +167,7 @@ namespace NetChannel
             }
             catch (Exception e)
             {
+                isSending = false;
                 LogRecord.Log(LogLevel.Warn, "StartSend", e.ConvertToJson());
                 HandleError();
             }
@@ -179,16 +180,18 @@ namespace NetChannel
         {
             try
             {
-                if (!Connected)
-                {
-                    return;
-                }
-
                 if (isReceiving)
                 {
                     return;
                 }
                 isReceiving = true;
+
+                if (!Connected)
+                {
+                    isReceiving = false;
+                    return;
+                }
+
                 this.inArgs.SetBuffer(RecvParser.Buffer.Last, RecvParser.Buffer.LastWriteOffset, RecvParser.Buffer.LastCapacity);
                 if (this.NetSocket.ReceiveAsync(this.inArgs))
                 {
@@ -198,7 +201,7 @@ namespace NetChannel
             }
             catch (Exception e)
             {
-                isReceiving = true;
+                isReceiving = false;
                 LogRecord.Log(LogLevel.Warn, "StartRecv", e.ConvertToJson());
                 HandleError();
             }
@@ -285,7 +288,7 @@ namespace NetChannel
         private void OnDisconnectComplete(object o)
         {
             SocketAsyncEventArgs e = (SocketAsyncEventArgs)o;
-            this.HandleError();
+            this.OnDisConnect?.Invoke(this);
         }
 
         private void OnRecvComplete(object o)
@@ -296,6 +299,7 @@ namespace NetChannel
                 return;
             }
 
+            this.LastRecvTime = TimeUitls.Now();
             SocketAsyncEventArgs e = (SocketAsyncEventArgs)o;
 
             if (e.SocketError != SocketError.Success)
@@ -350,6 +354,8 @@ namespace NetChannel
             {
                 return;
             }
+
+            this.LastSendTime = TimeUitls.Now();
             SocketAsyncEventArgs e = (SocketAsyncEventArgs)o;
 
             if (e.SocketError != SocketError.Success)

@@ -25,7 +25,7 @@ namespace MergeClient
             {
                 Subscribe(session, channel);
                 session.Update();
-                //Thread.Sleep(1);
+                Thread.Sleep(1);
             }
         }
 
@@ -61,6 +61,7 @@ namespace MergeClient
                         {
                             Console.WriteLine($"当前线程ID:{Thread.CurrentThread.ManagedThreadId}");
                             LogRecord.Log(LogLevel.Info, "数据响应测试", $"响应:{10000}个包耗时{stopwatch.ElapsedMilliseconds}毫秒");
+                            Thread.Sleep(1000);
                             stopwatch.Restart();
                         }
                     });
