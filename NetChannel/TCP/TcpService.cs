@@ -12,7 +12,6 @@ namespace NetChannel
     public class TcpService : ANetService
     {
         private IPEndPoint endPoint;
-        private Socket acceptor;
         private readonly SocketAsyncEventArgs innArgs = new SocketAsyncEventArgs();
 
         /// <summary>
@@ -20,8 +19,9 @@ namespace NetChannel
         /// </summary>
         /// <param name="endPoint">Ip/端口</param>
         /// <param name="session"></param>
-        public TcpService(IPEndPoint endPoint, Session session) : base(session)
+        public TcpService(IPEndPoint endPoint, Session session, NetServiceType serviceType) : base(session)
         {
+            this.serviceType = serviceType;
             SendQueue = new WorkQueue(session);
             this.endPoint = endPoint;
         }

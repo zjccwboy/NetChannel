@@ -14,9 +14,9 @@ namespace NetChannel
         /// <summary>
         /// 发送SYN连接请求
         /// </summary>
-        /// <param name="udpClient"></param>
+        /// <param name="socket"></param>
         /// <param name="endPoint"></param>
-        public static void SendSYN(UdpClient udpClient, IPEndPoint endPoint)
+        public static void SendSYN(Socket socket, IPEndPoint endPoint)
         {
             //发送SYN包
             var synPacket = new Packet
@@ -26,16 +26,16 @@ namespace NetChannel
 
             //握手包不要经过KCP发送
             var bytes = synPacket.GetHeadBytes();
-            udpClient.Send(bytes, bytes.Length, endPoint);
+            socket.SendTo(bytes, 0, bytes.Length,SocketFlags.None,  endPoint);
         }
 
         /// <summary>
         /// 发送ACK应答请求
         /// </summary>
-        /// <param name="udpClient"></param>
+        /// <param name="socket"></param>
         /// <param name="endPoint"></param>
         /// <param name="channel"></param>
-        public static void SendACK(UdpClient udpClient, IPEndPoint endPoint, KcpChannel channel)
+        public static void SendACK(Socket socket, IPEndPoint endPoint, KcpChannel channel)
         {
             var finPacket = new Packet
             {
@@ -46,16 +46,16 @@ namespace NetChannel
 
             //握手包不经过KCP发送
             var bytes = finPacket.GetHeadBytes();
-            udpClient.Send(bytes, bytes.Length, endPoint);
+            socket.SendTo(bytes, bytes.Length, SocketFlags.None,  endPoint);
         }
 
         /// <summary>
         /// 发送FIN连接断开请求
         /// </summary>
-        /// <param name="udpClient"></param>
+        /// <param name="socket"></param>
         /// <param name="endPoint"></param>
         /// <param name="channel"></param>
-        private static void SendFIN(UdpClient udpClient, IPEndPoint endPoint, KcpChannel channel)
+        private static void SendFIN(Socket socket, IPEndPoint endPoint, KcpChannel channel)
         {
             var finPacket = new Packet
             {
@@ -66,7 +66,7 @@ namespace NetChannel
 
             //握手包不经过KCP发送
             var bytes = finPacket.GetHeadBytes();
-            udpClient.Send(bytes, bytes.Length, endPoint);
+            socket.SendTo(bytes, bytes.Length, SocketFlags.None, endPoint);
         }
     }
 }

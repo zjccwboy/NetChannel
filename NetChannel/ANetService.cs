@@ -2,7 +2,7 @@
 using System;
 using System.Collections.Concurrent;
 using System.Collections.Generic;
-using System.Threading.Tasks;
+using System.Net.Sockets;
 
 namespace NetChannel
 {
@@ -19,6 +19,16 @@ namespace NetChannel
         {
             Session = session;
         }
+
+        /// <summary>
+        /// 接受连接请求Socket
+        /// </summary>
+        protected Socket acceptor;
+
+        /// <summary>
+        /// 网络服务类型
+        /// </summary>
+        protected NetServiceType serviceType;
 
         /// <summary>
         /// 连接通道池
@@ -55,7 +65,7 @@ namespace NetChannel
         /// <summary>
         /// 更新发送接收队列
         /// </summary>
-        public void Update()
+        public virtual void Update()
         {
             this.SendQueue.Update();
             var channels = Channels.Values;

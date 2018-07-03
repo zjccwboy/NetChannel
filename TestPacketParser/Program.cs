@@ -45,13 +45,13 @@ namespace TestPacketParser
                             Console.WriteLine(str);
                         }
                         count++;
-                        if (count == dataCount)
-                        {
-                            Console.WriteLine($"完成第{j}次");
-                            break;
-                        }
                     }
 
+                    if (count == dataCount)
+                    {
+                        Console.WriteLine($"完成第{j}次");
+                        break;
+                    }
                 }
             }            
         }

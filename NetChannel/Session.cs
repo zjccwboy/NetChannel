@@ -54,11 +54,11 @@ namespace NetChannel
             this.sessionType = NetServiceType.Server;
             if(this.protocalType == ProtocalType.Tcp)
             {
-                this.netService = new TcpService(this.endPoint, this);
+                this.netService = new TcpService(this.endPoint, this, NetServiceType.Server);
             }
             else if(this.protocalType == ProtocalType.Kcp)
             {
-                this.netService = new KcpService(this.endPoint, this, this.sessionType);
+                this.netService = new KcpService(this.endPoint, this, NetServiceType.Server);
             }
             this.netService.Accept();
         }
@@ -73,20 +73,20 @@ namespace NetChannel
             this.sessionType = NetServiceType.Client;
             if (this.protocalType == ProtocalType.Tcp)
             {
-                this.netService = new TcpService(this.endPoint, this);
+                this.netService = new TcpService(this.endPoint, this, NetServiceType.Client);
             }
             else if (this.protocalType == ProtocalType.Kcp)
             {
-                this.netService = new KcpService(this.endPoint, this, this.sessionType);
+                this.netService = new KcpService(this.endPoint, this, NetServiceType.Client);
             }
             currentChannel = this.netService.Connect();
             return currentChannel;
         }
 
         public void Update()
-        {            
-            this.netService.Update();
+        {
             OneThreadSynchronizationContext.Instance.Update();
+            this.netService.Update();
         }
 
         /// <summary>

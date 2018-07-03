@@ -504,6 +504,138 @@ namespace NetChannel
         }
 
         // when you received a low level packet (eg. UDP packet), call it
+        public int Input(byte[] data, int index, int size)
+        {
+            var s_una = snd_una;
+            if (size < IKCP_OVERHEAD)
+                return 0;
+
+            var offset = 0;
+
+            while (true)
+            {
+                UInt32 ts = 0;
+                UInt32 sn = 0;
+                UInt32 length = 0;
+                UInt32 una = 0;
+                UInt32 conv_ = 0;
+
+                UInt16 wnd = 0;
+
+                byte cmd = 0;
+                byte frg = 0;
+
+                if (size - offset < IKCP_OVERHEAD)
+                    break;
+
+                offset += ikcp_decode32u(data, offset, ref conv_);
+
+                // 这里我做了修改，不判断两端kcp conv相等，因为客户端也需要一个socket支持多个client连接
+                //if (conv != conv_)
+                //	return -1;
+
+                offset += ikcp_decode8u(data, offset, ref cmd);
+                offset += ikcp_decode8u(data, offset, ref frg);
+                offset += ikcp_decode16u(data, offset, ref wnd);
+                offset += ikcp_decode32u(data, offset, ref ts);
+                offset += ikcp_decode32u(data, offset, ref sn);
+                offset += ikcp_decode32u(data, offset, ref una);
+                offset += ikcp_decode32u(data, offset, ref length);
+
+                if (size - offset < length)
+                    return -2;
+
+                switch (cmd)
+                {
+                    case IKCP_CMD_PUSH:
+                    case IKCP_CMD_ACK:
+                    case IKCP_CMD_WASK:
+                    case IKCP_CMD_WINS:
+                        break;
+                    default:
+                        return -3;
+                }
+
+                rmt_wnd = wnd;
+                parse_una(una);
+                shrink_buf();
+
+                if (IKCP_CMD_ACK == cmd)
+                {
+                    if (_itimediff(current, ts) >= 0)
+                        this.update_ack(_itimediff(this.current, ts));
+                    parse_ack(sn);
+                    shrink_buf();
+                }
+                else if (IKCP_CMD_PUSH == cmd)
+                {
+                    if (_itimediff(sn, rcv_nxt + rcv_wnd) < 0)
+                    {
+                        ack_push(sn, ts);
+                        if (_itimediff(sn, rcv_nxt) >= 0)
+                        {
+                            var seg = new Segment((int)length);
+                            seg.conv = conv_;
+                            seg.cmd = cmd;
+                            seg.frg = frg;
+                            seg.wnd = wnd;
+                            seg.ts = ts;
+                            seg.sn = sn;
+                            seg.una = una;
+
+                            if (length > 0)
+                                System.Buffer.BlockCopy(data, offset, seg.data, 0, (int)length);
+
+                            parse_data(seg);
+                        }
+                    }
+                }
+                else if (IKCP_CMD_WASK == cmd)
+                {
+                    // ready to send back IKCP_CMD_WINS in Ikcp_flush
+                    // tell remote my window size
+                    probe |= IKCP_ASK_TELL;
+                }
+                else if (IKCP_CMD_WINS == cmd)
+                {
+                    // do nothing
+                }
+                else
+                {
+                    return -3;
+                }
+
+                offset += (int)length;
+            }
+
+            if (_itimediff(snd_una, s_una) > 0)
+                if (this.cwnd < this.rmt_wnd)
+                {
+                    var mss_ = this.mss;
+                    if (this.cwnd < this.ssthresh)
+                    {
+                        this.cwnd++;
+                        this.incr += mss_;
+                    }
+                    else
+                    {
+                        if (this.incr < mss_)
+                            this.incr = mss_;
+                        this.incr += mss_ * mss_ / this.incr + mss_ / 16;
+                        if ((this.cwnd + 1) * mss_ <= this.incr)
+                            this.cwnd++;
+                    }
+                    if (this.cwnd > this.rmt_wnd)
+                    {
+                        this.cwnd = this.rmt_wnd;
+                        this.incr = this.rmt_wnd * mss_;
+                    }
+                }
+
+            return 0;
+        }
+
+        // when you received a low level packet (eg. UDP packet), call it
         public int Input(byte[] data)
         {
             var s_una = snd_una;

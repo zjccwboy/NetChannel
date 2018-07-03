@@ -33,23 +33,22 @@ namespace NetChannel
     /// </summary>
     public class KcpChannel : ANetChannel
     {
-        private UdpClient socketClient;
         private Kcp kcp;
-        private readonly byte[] cacheBytes = new byte[1400];
+        private byte[] cacheBytes;
         private uint sendIntervalTime = TimeUitls.Now();
 
         /// <summary>
         /// 构造函数,Accept
         /// </summary>
         /// <param name="recvResult">Udp接收数据包对象</param>
-        /// <param name="udpClient">Ip/端口</param>
+        /// <param name="socket">Ip/端口</param>
         /// <param name="netService">网络服务</param>
         /// <param name="connectConv">网络连接Conv</param>
-        public KcpChannel(UdpReceiveResult recvResult, UdpClient udpClient, ANetService netService, uint connectConv) : base(netService, connectConv)
+        public KcpChannel(Socket socket, ANetService netService, uint connectConv) : base(netService, connectConv)
         {
-            this.LocalEndPoint = udpClient.Client.LocalEndPoint as IPEndPoint;
-            this.RemoteEndPoint = recvResult.RemoteEndPoint;
-            socketClient = udpClient;
+            this.LocalEndPoint = socket.LocalEndPoint as IPEndPoint;
+            this.RemoteEndPoint = socket.RemoteEndPoint as IPEndPoint;
+            this.NetSocket = socket;
             RecvParser = new PacketParser();
             SendParser = new PacketParser();
 
@@ -84,7 +83,7 @@ namespace NetChannel
         {
             try
             {
-                ConnectSender.SendSYN(this.socketClient, this.RemoteEndPoint);
+                ConnectSender.SendSYN(this.NetSocket, this.RemoteEndPoint);
             }
             catch (Exception e)
             {
@@ -95,11 +94,21 @@ namespace NetChannel
         /// <summary>
         /// 处理KCP接收数据
         /// </summary>
-        /// <param name="recvResult"></param>
-        public void HandleRecv(UdpReceiveResult recvResult)
+        /// <param name="bytes"></param>
+        /// <param name="offset"></param>
+        /// <param name="lenght"></param>
+        public void HandleRecv(byte[] bytes, int offset, int lenght)
         {
+            cacheBytes = bytes;
             this.LastRecvTime = TimeUitls.Now();
-            this.kcp.Input(recvResult.Buffer);
+            this.kcp.Input(bytes, offset, lenght);
+        }
+
+        /// <summary>
+        /// 该方法并没有用
+        /// </summary>
+        public override void StartRecv()
+        {
             while (true)
             {
                 int n = kcp.PeekSize();
@@ -144,29 +153,10 @@ namespace NetChannel
                     }
                     else
                     {
-                        LogRecord.Log(LogLevel.Warn, "HandleRecv", $"接收到客户端:{recvResult.RemoteEndPoint}心跳包");
+                        LogRecord.Log(LogLevel.Warn, "HandleRecv", $"接收到客户端:{this.RemoteEndPoint}心跳包");
                     }
                 }
             }
-        }
-
-        /// <summary>
-        /// 该方法并没有用
-        /// </summary>
-        public override async void StartRecv()
-        {
-            UdpReceiveResult recvResult;
-            try
-            {
-                recvResult = await this.socketClient.ReceiveAsync();
-                LastRecvTime = TimeUitls.Now();
-            }
-            catch (Exception e)
-            {
-                LogRecord.Log(LogLevel.Warn, "StartRecv", e);
-                return;
-            }
-            HandleRecv(recvResult);
         }
 
         /// <summary>
@@ -222,7 +212,7 @@ namespace NetChannel
         /// <param name="count"></param>
         private void Output(byte[] bytes, int count)
         {
-            this.socketClient.Client.SendTo(bytes, 0, count, SocketFlags.None, this.RemoteEndPoint);
+            this.NetSocket.SendTo(bytes, 0, count, SocketFlags.None, this.RemoteEndPoint);
         }
 
         /// <summary>
