@@ -16,6 +16,11 @@ namespace NetChannel
         private SocketAsyncEventArgs outArgs = new SocketAsyncEventArgs();
 
         /// <summary>
+        /// 发送状态机
+        /// </summary>
+        private bool isSending;
+
+        /// <summary>
         /// 接收状态机
         /// </summary>
         private bool isReceiving;
@@ -127,22 +132,38 @@ namespace NetChannel
         /// <returns></returns>
         public override void StartSend()
         {
+            if (isSending)
+            {
+                return;
+            }
+
+            SendData();
+        }
+
+        private void SendData()
+        {
             try
             {
+                isSending = true;
+
                 if (!Connected)
                 {
+                    isSending = false;
                     return;
                 }
 
-                while (SendParser.Buffer.DataSize > 0)
+                if (SendParser.Buffer.DataSize <= 0)
                 {
-                    this.outArgs.SetBuffer(SendParser.Buffer.First, SendParser.Buffer.FirstReadOffset, SendParser.Buffer.FirstDataSize);
-                    if (this.NetSocket.SendAsync(this.outArgs))
-                    {
-                        break;
-                    }
-                    OnSendComplete(this.outArgs);
+                    isSending = false;
+                    return;
                 }
+
+                this.outArgs.SetBuffer(SendParser.Buffer.First, SendParser.Buffer.FirstReadOffset, SendParser.Buffer.FirstDataSize);
+                if (this.NetSocket.SendAsync(this.outArgs))
+                {
+                    return;
+                }
+                OnSendComplete(this.outArgs);
             }
             catch (Exception e)
             {
@@ -318,11 +339,13 @@ namespace NetChannel
                     }
                 }
             }
-            //this.StartRecv();
+            this.StartRecv();
         }
 
         private void OnSendComplete(object o)
         {
+            isSending = false;
+
             if (this.NetSocket == null)
             {
                 return;
@@ -341,7 +364,7 @@ namespace NetChannel
                 return;
             }
 
-            this.StartSend();
+            this.SendData();
         }
     }
 }

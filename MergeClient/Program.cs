@@ -25,7 +25,7 @@ namespace MergeClient
             {
                 Subscribe(session, channel);
                 session.Update();
-                Thread.Sleep(1);
+                //Thread.Sleep(1);
             }
         }
 
@@ -42,7 +42,7 @@ namespace MergeClient
             }
 
             var send = new Packet { Data = Encoding.UTF8.GetBytes("111111111122222222223333333333444444444455555555556666666666777777777788888888889999999999") };
-            for (var i = 1; i <= 1000; i++)
+            for (var i = 1; i <= 10000; i++)
             {
                 if (channel.Connected)
                 {
