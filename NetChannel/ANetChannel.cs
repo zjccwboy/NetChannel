@@ -23,6 +23,17 @@ namespace NetChannel
         }
 
         /// <summary>
+        /// 构造函数
+        /// </summary>
+        /// <param name="netService">网络通讯服务对象</param>
+        /// <param name="conv">KCP连接确认号Conv</param>
+        public ANetChannel(ANetService netService, uint conv)
+        {
+            this.netService = netService;
+            Id = conv;
+        }
+
+        /// <summary>
         /// 通讯管道Id标识
         /// </summary>
         public uint Id { get; protected set; }
@@ -51,17 +62,6 @@ namespace NetChannel
         /// 发送包缓冲区解析器
         /// </summary>
         protected PacketParser SendParser = new PacketParser();
-
-        /// <summary>
-        /// 构造函数
-        /// </summary>
-        /// <param name="netService">网络通讯服务对象</param>
-        /// <param name="conv">KCP连接确认号Conv</param>
-        public ANetChannel(ANetService netService, uint conv)
-        {
-            this.netService = netService;
-            Id = conv;
-        }
 
         private int rpcId;
         /// <summary>

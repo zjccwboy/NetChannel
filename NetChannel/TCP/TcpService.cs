@@ -22,7 +22,6 @@ namespace NetChannel
         public TcpService(IPEndPoint endPoint, Session session, NetServiceType serviceType) : base(session)
         {
             this.serviceType = serviceType;
-            SendQueue = new WorkQueue(session);
             this.endPoint = endPoint;
         }
 

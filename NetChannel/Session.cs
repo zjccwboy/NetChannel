@@ -30,13 +30,9 @@ namespace NetChannel
     /// </summary>
     public class Session
     {
-        public const int HeartbeatTime = 1000 * 20;
-
         private ANetService netService;
         private IPEndPoint endPoint;
         private ANetChannel currentChannel;
-        private uint LastCheckTime;
-        private NetServiceType sessionType;
         private ProtocalType protocalType;
 
         public Session(IPEndPoint endPoint, ProtocalType protocalType)
@@ -51,7 +47,6 @@ namespace NetChannel
         /// <param name="endPoint"></param>
         public void Accept()
         {
-            this.sessionType = NetServiceType.Server;
             if(this.protocalType == ProtocalType.Tcp)
             {
                 this.netService = new TcpService(this.endPoint, this, NetServiceType.Server);
@@ -70,7 +65,6 @@ namespace NetChannel
         /// <returns></returns>
         public ANetChannel Connect()
         {
-            this.sessionType = NetServiceType.Client;
             if (this.protocalType == ProtocalType.Tcp)
             {
                 this.netService = new TcpService(this.endPoint, this, NetServiceType.Client);
@@ -101,7 +95,7 @@ namespace NetChannel
                 return;
             }
 
-            this.netService.SendQueue.Enqueue(new SendTask
+            this.netService.Enqueue(new SendTask
             {
                 Channel = channel,
                 Packet = packet,
@@ -124,7 +118,7 @@ namespace NetChannel
             packet.IsRpc = true;
             packet.RpcId = this.currentChannel.RpcId;
             this.currentChannel.AddPacket(packet, notificationAction);
-            this.netService.SendQueue.Enqueue(new SendTask
+            this.netService.Enqueue(new SendTask
             {
                 Channel = this.currentChannel,
                 Packet = packet,
@@ -137,60 +131,11 @@ namespace NetChannel
         /// <param name="packet"></param>
         public void SendMessage(Packet packet)
         {
-            this.netService.SendQueue.Enqueue(new SendTask
+            this.netService.Enqueue(new SendTask
             {
                 Channel = this.currentChannel,
                 Packet = packet,
             });
-        }
-
-        /// <summary>
-        /// 心跳检测
-        /// </summary>
-        internal void CheckHeadbeat()
-        {
-            var now = TimeUitls.Now();
-
-            var lastCheckSpan = now - this.LastCheckTime;
-            if(lastCheckSpan < HeartbeatTime)
-            {
-                return;
-            }
-
-            if(this.sessionType == NetServiceType.Client)
-            {
-                if(this.currentChannel == null)
-                {
-                    return;
-                }
-                if (!this.currentChannel.Connected)
-                {
-                    return;
-                }
-                var timeSpan = now - this.currentChannel.LastSendTime;
-                if (timeSpan > HeartbeatTime)
-                {
-                    SendMessage(new Packet
-                    {
-                        IsHeartbeat = true
-                    });
-                    LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"发送心跳包到服务端:{this.currentChannel.RemoteEndPoint}...");
-                }
-            }
-            else if(this.sessionType == NetServiceType.Server)
-            {
-                var channels = this.netService.Channels.Values;
-                foreach(var channel in channels)
-                {
-                    var timeSpan = now - channel.LastRecvTime;
-                    if (timeSpan > HeartbeatTime * 2000)
-                    {
-                        LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"客户端:{channel.RemoteEndPoint}连接超时，心跳检测断开，心跳时长{timeSpan}...");
-                        channel.DisConnect();
-                    }
-                }
-            }
-            LastCheckTime = now;
-        }
+        }       
     }
 }

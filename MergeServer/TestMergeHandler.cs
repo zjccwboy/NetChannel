@@ -16,6 +16,7 @@ namespace MergeServer
 
         public void DoReceive(Packet packet)
         {
+            var data = Encoding.UTF8.GetString(packet.Data);
             NetService.Session.Notice(Channel, packet);
             //recvCount++;
             //Console.WriteLine($"接收到数据包数量:{recvCount}");

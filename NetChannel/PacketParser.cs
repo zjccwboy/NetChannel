@@ -227,6 +227,7 @@ namespace NetChannel
         private ParseState state;
         private bool isOk;
         private bool finish;
+        private int tryCount = 0;
 
         /// <summary>
         /// 包头协议中表示数据包大小的第一个协议字节数，2个字节
@@ -265,6 +266,11 @@ namespace NetChannel
             isOk = false;
             while (true)
             {
+                if(tryCount > 4)
+                {
+                    throw new Exception("Parse packet error,the date invalid.");
+                }
+                tryCount++;
                 switch (state)
                 {
                     case ParseState.Head:
@@ -466,6 +472,7 @@ namespace NetChannel
             packetSize = 0;
             headSize = 0;
             bodyBytes = null;
+            tryCount = 0;
         }
 
         private Packet FailedPacket = new Packet();

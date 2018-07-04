@@ -12,8 +12,8 @@ namespace NetChannel
     /// </summary>
     public class TcpChannel : ANetChannel
     {
-        private SocketAsyncEventArgs inArgs = new SocketAsyncEventArgs();
-        private SocketAsyncEventArgs outArgs = new SocketAsyncEventArgs();
+        private SocketAsyncEventArgs inArgs;
+        private SocketAsyncEventArgs outArgs;
 
         /// <summary>
         /// 发送状态机
@@ -30,7 +30,7 @@ namespace NetChannel
         /// </summary>
         /// <param name="endPoint">Ip/端口</param>
         /// <param name="netService">通讯网络服务对象</param>
-        public TcpChannel(IPEndPoint endPoint, ANetService netService) : this(netService)
+        public TcpChannel(IPEndPoint endPoint, ANetService netService) : base(netService)
         {
             this.RemoteEndPoint = endPoint;
         }
@@ -41,18 +41,12 @@ namespace NetChannel
         /// <param name="endPoint">IP/端口</param>
         /// <param name="socket">TCP socket类</param>
         /// <param name="netService">通讯网络服务对象</param>
-        public TcpChannel(IPEndPoint endPoint, Socket socket, ANetService netService) : this(netService)
+        public TcpChannel(IPEndPoint endPoint, Socket socket, ANetService netService) : base(netService)
         {
             this.LocalEndPoint = endPoint;
             this.NetSocket = socket;
-        }
-
-        /// <summary>
-        /// 私有构造函数
-        /// </summary>
-        /// <param name="netService"></param>
-        private TcpChannel(ANetService netService) : base(netService)
-        {
+            this.inArgs = new SocketAsyncEventArgs();
+            this.outArgs = new SocketAsyncEventArgs();
             this.inArgs.Completed += OnComplete;
             this.outArgs.Completed += OnComplete;
         }
@@ -83,6 +77,11 @@ namespace NetChannel
                     this.NetSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                     this.NetSocket.NoDelay = true;
                 }
+
+                this.inArgs = new SocketAsyncEventArgs();
+                this.outArgs = new SocketAsyncEventArgs();
+                this.inArgs.Completed += OnComplete;
+                this.outArgs.Completed += OnComplete;
 
                 this.outArgs.RemoteEndPoint = this.RemoteEndPoint;
                 if (this.NetSocket.ConnectAsync(this.outArgs))
@@ -118,7 +117,7 @@ namespace NetChannel
         {
             try
             {
-                return !((NetSocket.Poll(1000, SelectMode.SelectRead) && (NetSocket.Available == 0)));                
+                return !((NetSocket.Poll(1000, SelectMode.SelectRead) && (NetSocket.Available == 0)));
             }
             catch (Exception e)
             {
@@ -236,11 +235,14 @@ namespace NetChannel
 
             try
             {
-                SendParser.Clear();
-                RecvParser.Clear();
+                //SendParser.Clear();
+                //RecvParser.Clear();
                 NetSocket.Close();
                 NetSocket.Dispose();
                 NetSocket = null;
+
+                this.inArgs.Dispose();
+                this.outArgs.Dispose();
             }
             catch { }
         }
@@ -282,11 +284,11 @@ namespace NetChannel
 
             this.LastConnectTime = TimeUitls.Now();
             e.RemoteEndPoint = null;
-            this.Connected = true;
             OnConnect?.Invoke(this);
+            this.Connected = true;
 
-            this.StartRecv();
-            this.StartSend();
+            //this.StartRecv();
+            //this.StartSend();
         }
 
         private void OnDisconnectComplete(object o)
@@ -308,44 +310,56 @@ namespace NetChannel
 
             if (e.SocketError != SocketError.Success)
             {
-                this.OnError?.Invoke(this, SocketError.SocketError);
+                DisConnect();
                 return;
             }
 
             if (e.BytesTransferred == 0)
             {
-                this.OnError?.Invoke(this, SocketError.SocketError);
+                DisConnect();
                 return;
             }
+
             RecvParser.Buffer.UpdateWrite(e.BytesTransferred);
 
             while (true)
             {
-                var packet = RecvParser.ReadBuffer();
-                if (!packet.IsSuccess)
+                try
                 {
-                    break;
-                }
-                LastRecvTime = TimeUitls.Now();
-                if (!packet.IsHeartbeat)
-                {
-                    if (packet.IsRpc)
+                    var packet = RecvParser.ReadBuffer();
+
+                    if (!packet.IsSuccess)
                     {
-                        if (RpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
+                        break;
+                    }
+                    LastRecvTime = TimeUitls.Now();
+                    if (!packet.IsHeartbeat)
+                    {
+                        if (packet.IsRpc)
                         {
-                            //执行RPC请求回调
-                            action(packet);
+                            if (RpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
+                            {
+                                //执行RPC请求回调
+                                action(packet);
+                            }
+                            else
+                            {
+                                OnReceive?.Invoke(packet);
+                            }
                         }
                         else
                         {
                             OnReceive?.Invoke(packet);
                         }
                     }
-                    else
-                    {
-                        OnReceive?.Invoke(packet);
-                    }
                 }
+                catch(Exception ex)
+                {
+                    LogRecord.Log(LogLevel.Warn, "OnRecvComplete", ex.ConvertToJson());
+                    DisConnect();
+                    return;
+                }
+
             }
             this.StartRecv();
         }
@@ -364,7 +378,7 @@ namespace NetChannel
 
             if (e.SocketError != SocketError.Success)
             {
-                this.OnError(this, e.SocketError);
+                DisConnect();
                 return;
             }
 

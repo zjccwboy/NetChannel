@@ -24,7 +24,6 @@ namespace NetChannel
         {
             this.serviceType = serviceType;
             this.endPoint = endPoint;
-            SendQueue = new WorkQueue(session);
         }
 
 
@@ -74,8 +73,8 @@ namespace NetChannel
                     this.ClientChannel.StartConnecting();
                 }
             }
-            this.SendQueue.Update();
-            StartRecv();
+            this.HandleSend();
+            this.StartRecv();
         }
 
         /// <summary>

@@ -21,6 +21,21 @@ namespace NetChannel
         }
 
         /// <summary>
+        /// 发送列表
+        /// </summary>
+        private readonly HashSet<ANetChannel> senders = new HashSet<ANetChannel>();
+
+        /// <summary>
+        /// 最后一次检测心跳的时间
+        /// </summary>
+        private uint LastCheckTime;
+
+        /// <summary>
+        /// 心跳超时时长
+        /// </summary>
+        public static uint HeartbeatTime = 1000 * 20;
+
+        /// <summary>
         /// 接受连接请求Socket
         /// </summary>
         protected Socket acceptor;
@@ -34,6 +49,11 @@ namespace NetChannel
         /// 客户端连接ANetChannel
         /// </summary>
         protected ANetChannel ClientChannel;
+
+        /// <summary>
+        /// 发送包队列
+        /// </summary>
+        protected readonly ConcurrentQueue<SendTask> sendQueue = new ConcurrentQueue<SendTask>();
 
         /// <summary>
         /// 连接通道池
@@ -63,11 +83,6 @@ namespace NetChannel
         public abstract ANetChannel Connect();
         
         /// <summary>
-        /// 发送队列
-        /// </summary>
-        public WorkQueue SendQueue { get; protected set; }
-
-        /// <summary>
         /// 更新发送接收队列
         /// </summary>
         public virtual void Update()
@@ -76,8 +91,96 @@ namespace NetChannel
             {                
                 ClientChannel.StartConnecting();
             }
-            this.SendQueue.Update();
+            HandleSend();
             ChannelReceive();
+        }
+
+        /// <summary>
+        /// 插入一个数据包到发送队列中
+        /// </summary>
+        /// <param name="sendTask"></param>
+        public void Enqueue(SendTask sendTask)
+        {
+            this.sendQueue.Enqueue(sendTask);
+        }
+
+        /// <summary>
+        /// 处理数据发送回调函数
+        /// </summary>
+        protected void HandleSend()
+        {
+            try
+            {
+                while (!this.sendQueue.IsEmpty)
+                {
+                    if (this.sendQueue.TryDequeue(out SendTask send))
+                    {
+                        send.WriteToBuffer();
+                        this.senders.Add(send.Channel);
+                    }
+                }
+
+                foreach (var channel in this.senders)
+                {
+                    channel.StartSend();
+                }
+                this.senders.Clear();
+
+                this.CheckHeadbeat();
+            }
+            catch (Exception e)
+            {
+                LogRecord.Log(LogLevel.Warn, "HandleSend", e);
+            }
+        }
+
+        /// <summary>
+        /// 心跳检测
+        /// </summary>
+        private void CheckHeadbeat()
+        {
+            var now = TimeUitls.Now();
+
+            var lastCheckSpan = now - this.LastCheckTime;
+            if (lastCheckSpan < HeartbeatTime)
+            {
+                return;
+            }
+
+            if (this.serviceType == NetServiceType.Client)
+            {
+                if (this.ClientChannel == null)
+                {
+                    return;
+                }
+                if (!this.ClientChannel.Connected)
+                {
+                    return;
+                }
+                var timeSpan = now - this.ClientChannel.LastSendTime;
+                if (timeSpan > HeartbeatTime)
+                {
+                    this.Session.SendMessage(new Packet
+                    {
+                        IsHeartbeat = true
+                    });
+                    LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"发送心跳包到服务端:{this.ClientChannel.RemoteEndPoint}...");
+                }
+            }
+            else if (this.serviceType == NetServiceType.Server)
+            {
+                var channels = this.Channels.Values;
+                foreach (var channel in channels)
+                {
+                    var timeSpan = now - channel.LastRecvTime;
+                    if (timeSpan > HeartbeatTime * 2000)
+                    {
+                        LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"客户端:{channel.RemoteEndPoint}连接超时，心跳检测断开，心跳时长{timeSpan}...");
+                        channel.DisConnect();
+                    }
+                }
+            }
+            LastCheckTime = now;
         }
 
         /// <summary>
