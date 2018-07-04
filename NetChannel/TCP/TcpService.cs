@@ -76,10 +76,13 @@ namespace NetChannel
         /// <returns></returns>
         public override ANetChannel Connect()
         {
-            var channel = new TcpChannel(endPoint, this);
-            channel.OnConnect = HandleConnect;
-            channel.StartConnecting();
-            return channel;
+            if(this.ClientChannel == null)
+            {
+                ClientChannel = new TcpChannel(endPoint, this);
+                ClientChannel.OnConnect = HandleConnect;
+                ClientChannel.StartConnecting();
+            }
+            return ClientChannel;
         }
 
         /// <summary>

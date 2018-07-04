@@ -31,6 +31,11 @@ namespace NetChannel
         protected NetServiceType serviceType;
 
         /// <summary>
+        /// 客户端连接ANetChannel
+        /// </summary>
+        protected ANetChannel ClientChannel;
+
+        /// <summary>
         /// 连接通道池
         /// </summary>
         public readonly ConcurrentDictionary<long, ANetChannel> Channels = new ConcurrentDictionary<long, ANetChannel>();
@@ -67,7 +72,19 @@ namespace NetChannel
         /// </summary>
         public virtual void Update()
         {
+            if(serviceType == NetServiceType.Client && ClientChannel != null)
+            {                
+                ClientChannel.StartConnecting();
+            }
             this.SendQueue.Update();
+            ChannelReceive();
+        }
+
+        /// <summary>
+        /// 所有管道接收数据
+        /// </summary>
+        protected void ChannelReceive()
+        {
             var channels = Channels.Values;
             foreach (var channel in channels)
             {

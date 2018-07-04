@@ -220,10 +220,16 @@ namespace NetChannel
         {
             FirstReadOffset = 0;
             LastWriteOffset = 0;
-            while(bufferQueue.Count > 1)
+            while (bufferQueue.Count > 1)
             {
                 bufferQueue.Dequeue();
             }
+            for(var i = 0; i < First.Length; i++)
+            {
+                First[i] = 0;
+            }
+            //bufferQueue.Clear();
+            //bufferQueue.Enqueue(new byte[blockSize]);
             bufferCache.Clear();
         }
     }

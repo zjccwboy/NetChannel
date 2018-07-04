@@ -18,7 +18,7 @@ namespace NetChannel
         public static long ClientNow()
         {
             //return (DateTime.UtcNow.Ticks - epoch) / 10000;
-            return StopWatch.ElapsedMilliseconds;
+            return StopWatch.ElapsedMilliseconds + ANetChannel.ReConnectInterval;
         }
 
         public static uint Now()

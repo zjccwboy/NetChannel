@@ -25,7 +25,6 @@ namespace NetChannel
             this.serviceType = serviceType;
             this.endPoint = endPoint;
             SendQueue = new WorkQueue(session);
-            StartRecv();
         }
 
 
@@ -55,9 +54,28 @@ namespace NetChannel
         /// <returns></returns>
         public override ANetChannel Connect()
         {
-            //ConnectSender.SendSYN(this.udpClient, endPoint);
+            if(this.ClientChannel == null)
+            {
+                this.ClientChannel = new KcpChannel(this.acceptor, this, 1000);
+                this.ClientChannel.StartConnecting();
+            }
+            return this.ClientChannel;
+        }
 
-            return new KcpChannel(this.acceptor, this, 1000);
+        /// <summary>
+        /// 更新发送接收队列
+        /// </summary>
+        public override void Update()
+        {
+            if (serviceType == NetServiceType.Client)
+            {
+                if(ClientChannel != null)
+                {
+                    this.ClientChannel.StartConnecting();
+                }
+            }
+            this.SendQueue.Update();
+            StartRecv();
         }
 
         /// <summary>
@@ -65,53 +83,50 @@ namespace NetChannel
         /// </summary>
         public void StartRecv()
         {
-            while (true)
+            int recvCount = 0;
+            try
             {
-                int recvCount = 0;
-                try
-                {
-                    recvCount = this.acceptor.Receive(recvBytes, 0, 1400, SocketFlags.None);
-                }
-                catch (Exception e)
-                {
-                    LogRecord.Log(LogLevel.Warn, "StartRecv", e);
-                    continue;
-                }
+                recvCount = this.acceptor.Receive(recvBytes, 0, 1400, SocketFlags.None);
+            }
+            catch (Exception e)
+            {
+                LogRecord.Log(LogLevel.Warn, "StartRecv", e);
+                return;
+            }
 
-                if (recvCount == 3 || recvCount == 7)
+            if (recvCount == 3 || recvCount == 7)
+            {
+                //客户端握手处理
+                connectParser.WriteBuffer(recvBytes, 0, recvCount);
+                var packet = connectParser.ReadBuffer();
+                if (!packet.IsSuccess)
                 {
-                    //客户端握手处理
-                    connectParser.WriteBuffer(recvBytes, 0, recvCount);
-                    var packet = connectParser.ReadBuffer();
-                    if (!packet.IsSuccess)
-                    {
-                        LogRecord.Log(LogLevel.Error, "StartRecv", $"丢弃非法数据包:{this.acceptor.RemoteEndPoint}");
-                        //丢弃非法数据包
-                        connectParser.Buffer.Flush();
-                        continue;
-                    }
-                    if (packet.KcpProtocal == KcpNetProtocal.SYN)
-                    {
-                        HandleSYN(this.acceptor);
-                    }
-                    else if (packet.KcpProtocal == KcpNetProtocal.ACK)
-                    {
-                        HandleACK(packet, this.acceptor);
-                    }
-                    else if (packet.KcpProtocal == KcpNetProtocal.FIN)
-                    {
-                        LogRecord.Log(LogLevel.Error, "StartRecv", $"丢弃非法数据包:{this.acceptor.RemoteEndPoint}");
-                        HandleFIN(packet);
-                    }
+                    LogRecord.Log(LogLevel.Error, "StartRecv", $"丢弃非法数据包:{this.acceptor.RemoteEndPoint}");
+                    //丢弃非法数据包
+                    connectParser.Buffer.Flush();
+                    return;
                 }
-                else
+                if (packet.KcpProtocal == KcpNetProtocal.SYN)
                 {
-                    uint connectConv = BitConverter.ToUInt32(recvBytes, 0);
-                    if (this.Channels.TryGetValue(connectConv, out ANetChannel channel))
-                    {
-                        var kcpChannel = channel as KcpChannel;
-                        kcpChannel.HandleRecv(recvBytes, 0, recvCount);
-                    }
+                    HandleSYN(this.acceptor);
+                }
+                else if (packet.KcpProtocal == KcpNetProtocal.ACK)
+                {
+                    HandleACK(packet, this.acceptor);
+                }
+                else if (packet.KcpProtocal == KcpNetProtocal.FIN)
+                {
+                    LogRecord.Log(LogLevel.Error, "StartRecv", $"丢弃非法数据包:{this.acceptor.RemoteEndPoint}");
+                    HandleFIN(packet);
+                }
+            }
+            else
+            {
+                uint connectConv = BitConverter.ToUInt32(recvBytes, 0);
+                if (this.Channels.TryGetValue(connectConv, out ANetChannel channel))
+                {
+                    var kcpChannel = channel as KcpChannel;
+                    kcpChannel.HandleRecv(recvBytes, 0, recvCount);
                 }
             }
         }

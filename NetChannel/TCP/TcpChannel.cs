@@ -65,6 +65,14 @@ namespace NetChannel
         {
             try
             {
+                var now = TimeUitls.Now();
+                if(now - this.LastConnectTime < ANetChannel.ReConnectInterval)
+                {
+                    return;
+                }
+
+                this.LastConnectTime = now;
+
                 if (Connected)
                 {
                     return;
@@ -95,8 +103,10 @@ namespace NetChannel
         /// <returns></returns>
         public override void ReConnecting()
         {
-            DisConnect();
-            Connected = false;
+            if (Connected)
+            {
+                DisConnect();
+            }
             StartConnecting();
         }
 
@@ -226,7 +236,6 @@ namespace NetChannel
                 Connected = false;
                 if (NetSocket == null)
                 {
-
                     return;
                 }
                 OnDisConnect?.Invoke(this);
@@ -235,6 +244,8 @@ namespace NetChannel
 
             try
             {
+                SendParser.Clear();
+                RecvParser.Clear();
                 NetSocket.Close();
                 NetSocket.Dispose();
                 NetSocket = null;
@@ -277,6 +288,7 @@ namespace NetChannel
                 return;
             }
 
+            this.LastConnectTime = TimeUitls.Now();
             e.RemoteEndPoint = null;
             this.Connected = true;
             OnConnect?.Invoke(this);

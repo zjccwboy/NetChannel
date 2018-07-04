@@ -20,7 +20,6 @@ namespace MergeClient
             var session = new Session(endPoint, ProtocalType.Tcp);
             var channel = session.Connect(); ;
             stopwatch.Start();
-            Console.WriteLine($"当前线程ID:{Thread.CurrentThread.ManagedThreadId}");
             while (true)
             {
                 Subscribe(session, channel);

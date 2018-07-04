@@ -33,6 +33,16 @@ namespace NetChannel
         public Socket NetSocket { get; protected set; }
 
         /// <summary>
+        /// 最后连接时间
+        /// </summary>
+        public uint LastConnectTime { get; protected set; } = 0;
+
+        /// <summary>
+        /// 3秒重连
+        /// </summary>
+        public const uint ReConnectInterval = 3000;
+
+        /// <summary>
         /// 接收包缓冲区解析器
         /// </summary>
         protected PacketParser RecvParser = new PacketParser();

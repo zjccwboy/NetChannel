@@ -438,6 +438,18 @@ namespace NetChannel
         }
 
         /// <summary>
+        /// 重置当前解析器所有状态
+        /// </summary>
+        public void Clear()
+        {
+            state = ParseState.Head;
+            isOk = false;
+            finish = false;
+            Flush();
+            Buffer.Flush();
+        }
+
+        /// <summary>
         /// 重置解析器
         /// </summary>
         private void Flush()
