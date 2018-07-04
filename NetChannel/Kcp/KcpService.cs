@@ -100,7 +100,7 @@ namespace NetChannel
                 var packet = connectParser.ReadBuffer();
                 if (!packet.IsSuccess)
                 {
-                    LogRecord.Log(LogLevel.Error, "StartRecv", $"丢弃非法数据包:{this.acceptor.RemoteEndPoint}");
+                    LogRecord.Log(LogLevel.Error, "StartRecv", $"丢弃非法数据包:{this.acceptor.RemoteEndPoint}.");
                     //丢弃非法数据包
                     connectParser.Buffer.Flush();
                     return;
@@ -115,7 +115,7 @@ namespace NetChannel
                 }
                 else if (packet.KcpProtocal == KcpNetProtocal.FIN)
                 {
-                    LogRecord.Log(LogLevel.Error, "StartRecv", $"丢弃非法数据包:{this.acceptor.RemoteEndPoint}");
+                    LogRecord.Log(LogLevel.Error, "StartRecv", $"丢弃非法数据包:{this.acceptor.RemoteEndPoint}.");
                     HandleFIN(packet);
                 }
             }
@@ -197,7 +197,7 @@ namespace NetChannel
                 channel.Connected = true;
                 AddChannel(channel);
                 AddHandler(channel);
-                LogRecord.Log(LogLevel.Info, "HandleAccept", $"接受客户端:{channel.RemoteEndPoint}连接成功...");
+                LogRecord.Log(LogLevel.Info, "HandleAccept", $"接受客户端:{channel.RemoteEndPoint}连接成功.");
             }
             catch (Exception e)
             {
@@ -218,7 +218,7 @@ namespace NetChannel
                 AddChannel(channel);
                 AddHandler(channel);
                 //channel.StartRecv();
-                LogRecord.Log(LogLevel.Info, "HandleConnect", $"连接服务端:{channel.RemoteEndPoint}成功...");
+                LogRecord.Log(LogLevel.Info, "HandleConnect", $"连接服务端:{channel.RemoteEndPoint}成功.");
             }
             catch (Exception e)
             {

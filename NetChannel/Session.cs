@@ -79,8 +79,15 @@ namespace NetChannel
 
         public void Update()
         {
-            this.netService.Update();
-            OneThreadSynchronizationContext.Instance.Update();
+            try
+            {
+                this.netService.Update();
+                OneThreadSynchronizationContext.Instance.Update();
+            }
+            catch(Exception e)
+            {
+                LogRecord.Log(LogLevel.Warn, "Update", e);
+            }
         }
 
         /// <summary>

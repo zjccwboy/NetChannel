@@ -153,7 +153,7 @@ namespace NetChannel
                     }
                     else
                     {
-                        LogRecord.Log(LogLevel.Warn, "HandleRecv", $"接收到客户端:{this.RemoteEndPoint}心跳包");
+                        LogRecord.Log(LogLevel.Warn, "HandleRecv", $"接收到客户端:{this.RemoteEndPoint}心跳包.");
                     }
                 }
             }

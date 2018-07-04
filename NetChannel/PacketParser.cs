@@ -268,7 +268,7 @@ namespace NetChannel
             {
                 if(tryCount > 4)
                 {
-                    throw new Exception("Parse packet error,the date invalid.");
+                    throw new Exception("解包错误，数据包非法.");
                 }
                 tryCount++;
                 switch (state)

@@ -92,7 +92,7 @@ namespace NetChannel
             }
             catch (Exception e)
             {
-                LogRecord.Log(LogLevel.Warn, "StartConnecting", e.ConvertToJson());
+                LogRecord.Log(LogLevel.Warn, "StartConnecting", e);
             }
         }
 
@@ -121,7 +121,7 @@ namespace NetChannel
             }
             catch (Exception e)
             {
-                LogRecord.Log(LogLevel.Warn, "CheckConnection", e.ConvertToJson());
+                LogRecord.Log(LogLevel.Warn, "CheckConnection", e);
                 return false;
             }
         }
@@ -177,7 +177,7 @@ namespace NetChannel
             catch (Exception e)
             {
                 isSending = false;
-                LogRecord.Log(LogLevel.Warn, "StartSend", e.ConvertToJson());
+                LogRecord.Log(LogLevel.Warn, "StartSend", e);
                 DisConnect();
             }
         }
@@ -211,7 +211,7 @@ namespace NetChannel
             catch (Exception e)
             {
                 isReceiving = false;
-                LogRecord.Log(LogLevel.Warn, "StartRecv", e.ConvertToJson());
+                LogRecord.Log(LogLevel.Warn, "StartRecv", e);
                 DisConnect();
             }
         }
@@ -355,7 +355,7 @@ namespace NetChannel
                 }
                 catch(Exception ex)
                 {
-                    LogRecord.Log(LogLevel.Warn, "OnRecvComplete", ex.ConvertToJson());
+                    LogRecord.Log(LogLevel.Warn, "OnRecvComplete", ex);
                     DisConnect();
                     return;
                 }

@@ -63,7 +63,7 @@ namespace NetChannel
             FirstReadOffset += addValue;
             if (FirstReadOffset > blockSize)
             {
-                throw new ArgumentOutOfRangeException("read offset out of buffer.");
+                throw new ArgumentOutOfRangeException("缓冲区索引超出有效范围.");
             }
 
             if (FirstReadOffset == blockSize)
@@ -82,7 +82,7 @@ namespace NetChannel
             LastWriteOffset += addValue;
             if (LastWriteOffset > blockSize)
             {
-                throw new ArgumentOutOfRangeException("read offset out of buffer.");
+                throw new ArgumentOutOfRangeException("缓冲区索引超出有效范围.");
             }
 
             if (LastWriteOffset == blockSize)
@@ -118,7 +118,7 @@ namespace NetChannel
 
                 if(result < 0)
                 {
-                    throw new ArgumentOutOfRangeException("read offset out of buffer.");
+                    throw new ArgumentOutOfRangeException("缓冲区索引超出有效范围.");
                 }
 
                 return result;
@@ -158,7 +158,7 @@ namespace NetChannel
                 }
                 if (size < 0)
                 {
-                    throw new ArgumentOutOfRangeException("data index out of buffer.");
+                    throw new ArgumentOutOfRangeException("缓冲区索引超出有效范围.");
                 }
                 return size;
             }
@@ -228,8 +228,6 @@ namespace NetChannel
             {
                 First[i] = 0;
             }
-            //bufferQueue.Clear();
-            //bufferQueue.Enqueue(new byte[blockSize]);
             bufferCache.Clear();
         }
     }

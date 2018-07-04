@@ -32,29 +32,29 @@ namespace Common
 
         public static void Log(LogLevel level, string description, string logRecord)
         {
-            WriteLog(level, description, logRecord, null);
+            WriteLog(level, description, logRecord);
         }
 
         public static void Log(LogLevel level, string description, object logRecord)
         {
-            WriteLog(level, description, logRecord.ConvertToJson(), null);
+            WriteLog(level, description, logRecord.ConvertToJson());
         }
 
         public static void Log(LogLevel level, string description, Exception exception)
         {
-            WriteLog(level, description, string.Empty, exception);
+            WriteLog(level, description, exception.ToString());
         }
 
         public static void Log(string description, Exception exception)
         {
-            WriteLog(LogLevel.Error, description, string.Empty, exception);
+            WriteLog(LogLevel.Error, description, exception.ToString());
         }
 
-        private static void WriteLog(LogLevel level, string description, string logRecord, Exception exception)
+        private static void WriteLog(LogLevel level, string description, string logRecord)
         {
             var logLevel = GetLogLevel(level);
             var message = $"Desc:{description} Log:{logRecord}";
-            logger.Log(logType, logLevel, message, exception);
+            logger.Log(logType, logLevel, message, null);
         }
 
         private static Level GetLogLevel(LogLevel level)

@@ -164,7 +164,7 @@ namespace NetChannel
                     {
                         IsHeartbeat = true
                     });
-                    LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"发送心跳包到服务端:{this.ClientChannel.RemoteEndPoint}...");
+                    LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"发送心跳包到服务端:{this.ClientChannel.RemoteEndPoint}.");
                 }
             }
             else if (this.serviceType == NetServiceType.Server)
@@ -175,7 +175,7 @@ namespace NetChannel
                     var timeSpan = now - channel.LastRecvTime;
                     if (timeSpan > HeartbeatTime * 2000)
                     {
-                        LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"客户端:{channel.RemoteEndPoint}连接超时，心跳检测断开，心跳时长{timeSpan}...");
+                        LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"客户端:{channel.RemoteEndPoint}连接超时，心跳检测断开，心跳时长{timeSpan}.");
                         channel.DisConnect();
                     }
                 }
@@ -238,12 +238,12 @@ namespace NetChannel
                 if (Channels.TryRemove(channel.Id, out ANetChannel valu))
                 {
                     Handlers.TryRemove(channel.Id, out IEnumerable<IMessageHandler> handler);
-                    LogRecord.Log(LogLevel.Info, "HandleDisConnectOnServer", $"客户端:{channel.RemoteEndPoint}连接断开...");
+                    LogRecord.Log(LogLevel.Info, "HandleDisConnectOnServer", $"客户端:{channel.RemoteEndPoint}连接断开.");
                 }
             }
             catch (Exception e)
             {
-                LogRecord.Log(LogLevel.Warn, "HandleDisConnectOnServer", e.ConvertToJson());
+                LogRecord.Log(LogLevel.Warn, "HandleDisConnectOnServer", e);
             }
         }
 
@@ -257,13 +257,13 @@ namespace NetChannel
             {
                 if (Channels.TryRemove(channel.Id, out ANetChannel valu))
                 {
-                    LogRecord.Log(LogLevel.Info, "HandleDisConnectOnClient", $"与服务端{channel.RemoteEndPoint}连接断开...");
+                    LogRecord.Log(LogLevel.Info, "HandleDisConnectOnClient", $"与服务端{channel.RemoteEndPoint}连接断开.");
                     ReConnecting(channel);
                 }
             }
             catch (Exception e)
             {
-                LogRecord.Log(LogLevel.Warn, "HandleDisConnectOnClient", e.ConvertToJson());
+                LogRecord.Log(LogLevel.Warn, "HandleDisConnectOnClient", e);
             }
         }
     }
