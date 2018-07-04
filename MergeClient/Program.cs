@@ -41,6 +41,7 @@ namespace MergeClient
                 {
                     sendCount = 0;
                     recvCount = 0;
+                    stopwatch.Restart();
                 }
                 return;
             }
@@ -66,7 +67,7 @@ namespace MergeClient
                     }
                     if (recvCount % 10000 == 0)
                     {
-                        Console.WriteLine($"当前线程ID:{Thread.CurrentThread.ManagedThreadId}");
+                        //Console.WriteLine($"当前线程ID:{Thread.CurrentThread.ManagedThreadId}");
                         LogRecord.Log(LogLevel.Info, "数据响应测试", $"响应:{10000}个包耗时{stopwatch.ElapsedMilliseconds}毫秒");
                         Thread.Sleep(1000);
                         stopwatch.Restart();

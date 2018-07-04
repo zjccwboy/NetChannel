@@ -76,12 +76,12 @@ namespace NetChannel
                 {
                     this.NetSocket = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                     this.NetSocket.NoDelay = true;
-                }
 
-                this.inArgs = new SocketAsyncEventArgs();
-                this.outArgs = new SocketAsyncEventArgs();
-                this.inArgs.Completed += OnComplete;
-                this.outArgs.Completed += OnComplete;
+                    this.inArgs = new SocketAsyncEventArgs();
+                    this.outArgs = new SocketAsyncEventArgs();
+                    this.inArgs.Completed += OnComplete;
+                    this.outArgs.Completed += OnComplete;
+                }
 
                 this.outArgs.RemoteEndPoint = this.RemoteEndPoint;
                 if (this.NetSocket.ConnectAsync(this.outArgs))
@@ -235,8 +235,8 @@ namespace NetChannel
 
             try
             {
-                //SendParser.Clear();
-                //RecvParser.Clear();
+                SendParser.Clear();
+                RecvParser.Clear();
                 NetSocket.Close();
                 NetSocket.Dispose();
                 NetSocket = null;

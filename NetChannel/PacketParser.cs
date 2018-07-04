@@ -227,7 +227,6 @@ namespace NetChannel
         private ParseState state;
         private bool isOk;
         private bool finish;
-        private int tryCount = 0;
 
         /// <summary>
         /// 包头协议中表示数据包大小的第一个协议字节数，2个字节
@@ -263,6 +262,7 @@ namespace NetChannel
         /// </summary>
         private void Parse()
         {
+            var tryCount = 0;
             isOk = false;
             while (true)
             {
@@ -472,7 +472,6 @@ namespace NetChannel
             packetSize = 0;
             headSize = 0;
             bodyBytes = null;
-            tryCount = 0;
         }
 
         private Packet FailedPacket = new Packet();
