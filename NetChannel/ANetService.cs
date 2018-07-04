@@ -92,7 +92,7 @@ namespace NetChannel
                 ClientChannel.StartConnecting();
             }
             HandleSend();
-            ChannelReceive();
+            HandleReceive();
         }
 
         /// <summary>
@@ -135,6 +135,18 @@ namespace NetChannel
         }
 
         /// <summary>
+        /// 所有管道接收数据
+        /// </summary>
+        protected void HandleReceive()
+        {
+            var channels = Channels.Values;
+            foreach (var channel in channels)
+            {
+                channel.StartRecv();
+            }
+        }
+
+        /// <summary>
         /// 心跳检测
         /// </summary>
         private void CheckHeadbeat()
@@ -173,7 +185,7 @@ namespace NetChannel
                 foreach (var channel in channels)
                 {
                     var timeSpan = now - channel.LastRecvTime;
-                    if (timeSpan > HeartbeatTime * 2000)
+                    if (timeSpan > HeartbeatTime)
                     {
                         LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"客户端:{channel.RemoteEndPoint}连接超时，心跳检测断开，心跳时长{timeSpan}.");
                         channel.DisConnect();
@@ -184,34 +196,12 @@ namespace NetChannel
         }
 
         /// <summary>
-        /// 所有管道接收数据
-        /// </summary>
-        protected void ChannelReceive()
-        {
-            var channels = Channels.Values;
-            foreach (var channel in channels)
-            {
-                channel.StartRecv();
-            }
-        }
-
-        /// <summary>
         /// 添加一个通讯管道到连接对象池中
         /// </summary>
         /// <param name="channel"></param>
         protected void AddChannel(ANetChannel channel)
         {
             Channels.TryAdd(channel.Id, channel);
-        }
-
-        /// <summary>
-        /// 断线重连方法
-        /// </summary>
-        /// <param name="channel"></param>
-        /// <returns></returns>
-        protected void ReConnecting(ANetChannel channel)
-        {
-
         }
 
         /// <summary>
@@ -258,7 +248,6 @@ namespace NetChannel
                 if (Channels.TryRemove(channel.Id, out ANetChannel valu))
                 {
                     LogRecord.Log(LogLevel.Info, "HandleDisConnectOnClient", $"与服务端{channel.RemoteEndPoint}连接断开.");
-                    ReConnecting(channel);
                 }
             }
             catch (Exception e)
