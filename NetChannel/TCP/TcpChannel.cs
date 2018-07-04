@@ -179,7 +179,7 @@ namespace NetChannel
             {
                 isSending = false;
                 LogRecord.Log(LogLevel.Warn, "StartSend", e.ConvertToJson());
-                HandleError();
+                DisConnect();
             }
         }
 
@@ -213,18 +213,10 @@ namespace NetChannel
             {
                 isReceiving = false;
                 LogRecord.Log(LogLevel.Warn, "StartRecv", e.ConvertToJson());
-                HandleError();
+                DisConnect();
             }
         }
 
-        /// <summary>
-        /// 处理错误
-        /// </summary>
-        private void HandleError()
-        {
-            DisConnect();
-            OnError?.Invoke(this, SocketError.SocketError);
-        }
 
         /// <summary>
         /// 断开连接
@@ -284,7 +276,7 @@ namespace NetChannel
             SocketAsyncEventArgs e = (SocketAsyncEventArgs)o;
             if (e.SocketError != SocketError.Success)
             {
-                this.HandleError();
+                this.OnError?.Invoke(this, SocketError.SocketError);
                 return;
             }
 
@@ -316,13 +308,13 @@ namespace NetChannel
 
             if (e.SocketError != SocketError.Success)
             {
-                this.HandleError();
+                this.OnError?.Invoke(this, SocketError.SocketError);
                 return;
             }
 
             if (e.BytesTransferred == 0)
             {
-                this.HandleError();
+                this.OnError?.Invoke(this, SocketError.SocketError);
                 return;
             }
             RecvParser.Buffer.UpdateWrite(e.BytesTransferred);
