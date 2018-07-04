@@ -32,7 +32,7 @@ namespace NetChannel
     {
         private ANetService netService;
         private IPEndPoint endPoint;
-        private ANetChannel currentChannel;
+        private ANetChannel clientChannel;
         private ProtocalType protocalType;
 
         public Session(IPEndPoint endPoint, ProtocalType protocalType)
@@ -73,8 +73,8 @@ namespace NetChannel
             {
                 this.netService = new KcpService(this.endPoint, this, NetServiceType.Client);
             }
-            currentChannel = this.netService.Connect();
-            return currentChannel;
+            clientChannel = this.netService.Connect();
+            return clientChannel;
         }
 
         public void Update()
@@ -117,17 +117,17 @@ namespace NetChannel
         /// <param name="notificationAction"></param>
         public void Subscribe(Packet packet, Action<Packet> notificationAction)
         {
-            if (!this.currentChannel.Connected)
+            if (!this.clientChannel.Connected)
             {
                 return;
             }
 
             packet.IsRpc = true;
-            packet.RpcId = this.currentChannel.RpcId;
-            this.currentChannel.AddPacket(packet, notificationAction);
+            packet.RpcId = this.clientChannel.RpcId;
+            this.clientChannel.AddPacket(packet, notificationAction);
             this.netService.Enqueue(new SendTask
             {
-                Channel = this.currentChannel,
+                Channel = this.clientChannel,
                 Packet = packet,
             });
         }
@@ -140,7 +140,7 @@ namespace NetChannel
         {
             this.netService.Enqueue(new SendTask
             {
-                Channel = this.currentChannel,
+                Channel = this.clientChannel,
                 Packet = packet,
             });
         }       
