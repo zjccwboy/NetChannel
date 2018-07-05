@@ -13,6 +13,7 @@ namespace NetChannel
     {
         private readonly PacketParser connectParser = new PacketParser(7);
         private IPEndPoint endPoint;
+        private EndPoint ipEndPoint = new IPEndPoint(IPAddress.Any, 0);
         private readonly byte[] recvBytes = new byte[1400];
 
         /// <summary>
@@ -25,8 +26,7 @@ namespace NetChannel
             this.serviceType = serviceType;
             this.endPoint = endPoint;
         }
-
-
+        
         /// <summary>
         /// 开始监听并接受连接请求
         /// </summary>
@@ -35,7 +35,7 @@ namespace NetChannel
         {
             if(this.acceptor == null)
             {
-                this.acceptor = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Udp);
+                this.acceptor = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
                 if (serviceType == NetServiceType.Server)
                 {
                     uint IOC_IN = 0x80000000;
@@ -53,9 +53,10 @@ namespace NetChannel
         /// <returns></returns>
         public override ANetChannel Connect()
         {
-            if(this.ClientChannel == null)
+            if(this.acceptor == null)
             {
-                this.ClientChannel = new KcpChannel(this.acceptor, this, 1000);
+                this.acceptor = new Socket(AddressFamily.InterNetwork, SocketType.Dgram, ProtocolType.Udp);
+                this.ClientChannel = new KcpChannel(this.acceptor, this.endPoint, this, 1000);
                 this.ClientChannel.StartConnecting();
             }
             return this.ClientChannel;
@@ -85,7 +86,7 @@ namespace NetChannel
             int recvCount = 0;
             try
             {
-                recvCount = this.acceptor.Receive(recvBytes, 0, 1400, SocketFlags.None);
+                recvCount = this.acceptor.ReceiveFrom(recvBytes, ref this.ipEndPoint);
             }
             catch (Exception e)
             {
@@ -107,16 +108,16 @@ namespace NetChannel
                 }
                 if (packet.KcpProtocal == KcpNetProtocal.SYN)
                 {
-                    HandleSYN(this.acceptor);
+                    HandleSYN(this.acceptor, this.ipEndPoint as IPEndPoint);
                 }
                 else if (packet.KcpProtocal == KcpNetProtocal.ACK)
                 {
-                    HandleACK(packet, this.acceptor);
+                    HandleACK(packet, this.acceptor, this.ipEndPoint as IPEndPoint);
                 }
                 else if (packet.KcpProtocal == KcpNetProtocal.FIN)
                 {
                     LogRecord.Log(LogLevel.Error, "StartRecv", $"丢弃非法数据包:{this.acceptor.RemoteEndPoint}.");
-                    HandleFIN(packet);
+                    HandleFIN(packet, this.ipEndPoint as IPEndPoint);
                 }
             }
             else
@@ -134,14 +135,15 @@ namespace NetChannel
         /// 处理客户端SYN连接请求
         /// </summary>
         /// <param name="socket"></param>
-        private void HandleSYN(Socket socket)
+        /// <param name="remoteEP"></param>
+        private void HandleSYN(Socket socket, EndPoint remoteEP)
         {
             var conv = KcpConvIdCreator.CreateId();
             while (this.Channels.ContainsKey(conv))
             {
                 conv = KcpConvIdCreator.CreateId();
             }
-            var channel = new KcpChannel(socket, this, conv);
+            var channel = new KcpChannel(socket, remoteEP as IPEndPoint, this, conv);
             channel.OnConnect = HandleAccept;
             channel.OnConnect?.Invoke(channel);
             ConnectSender.SendACK(this.acceptor, channel.RemoteEndPoint, channel);
@@ -151,19 +153,27 @@ namespace NetChannel
         /// 处理连接请求ACK应答
         /// </summary>
         /// <param name="packet"></param>
-        /// <param name="recvResult"></param>
-        private void HandleACK(Packet packet, Socket socket)
+        /// <param name="socket"></param>
+        /// <param name="remoteEP"></param>
+        private void HandleACK(Packet packet, Socket socket, EndPoint remoteEP)
         {
-            var channel = new KcpChannel(socket, this, packet.ActorMessageId);
-            channel.OnConnect = HandleConnect;
-            channel.OnConnect?.Invoke(channel);
+            if(this.ClientChannel == null)
+            {
+                return;
+            }
+            //var channel = new KcpChannel(socket, remoteEP as IPEndPoint, this, packet.ActorMessageId);
+            this.ClientChannel.RemoteEndPoint = remoteEP as IPEndPoint;
+            this.ClientChannel.Id = packet.ActorMessageId;
+            this.ClientChannel.OnConnect = HandleConnect;
+            this.ClientChannel.OnConnect?.Invoke(this.ClientChannel);
         }
 
         /// <summary>
         /// 处理连接断开FIN请求
         /// </summary>
         /// <param name="packet"></param>
-        private void HandleFIN(Packet packet)
+        /// <param name="remoteEP"></param>
+        private void HandleFIN(Packet packet, EndPoint remoteEP)
         {
             if (this.Channels.TryGetValue(packet.ActorMessageId, out ANetChannel channel))
             {

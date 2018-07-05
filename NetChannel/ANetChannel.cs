@@ -36,7 +36,7 @@ namespace NetChannel
         /// <summary>
         /// 通讯管道Id标识
         /// </summary>
-        public uint Id { get; protected set; }
+        public uint Id { get; set; }
 
         /// <summary>
         /// Socket

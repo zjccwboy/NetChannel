@@ -38,16 +38,14 @@ namespace NetChannel
         private uint sendIntervalTime = TimeUitls.Now();
 
         /// <summary>
-        /// 构造函数,Accept
+        /// 构造函数,Connect
         /// </summary>
-        /// <param name="recvResult">Udp接收数据包对象</param>
         /// <param name="socket">Ip/端口</param>
         /// <param name="netService">网络服务</param>
         /// <param name="connectConv">网络连接Conv</param>
-        public KcpChannel(Socket socket, ANetService netService, uint connectConv) : base(netService, connectConv)
+        public KcpChannel(Socket socket, IPEndPoint endPoint, ANetService netService, uint connectConv) : base(netService, connectConv)
         {
-            this.LocalEndPoint = socket.LocalEndPoint as IPEndPoint;
-            this.RemoteEndPoint = socket.RemoteEndPoint as IPEndPoint;
+            this.RemoteEndPoint = endPoint;
             this.NetSocket = socket;
             RecvParser = new PacketParser();
             SendParser = new PacketParser();
@@ -95,6 +93,7 @@ namespace NetChannel
                 {
                     return;
                 }
+
                 ConnectSender.SendSYN(this.NetSocket, this.RemoteEndPoint);
             }
             catch (Exception e)
