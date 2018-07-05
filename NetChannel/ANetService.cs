@@ -113,10 +113,14 @@ namespace NetChannel
             {
                 while (!this.sendQueue.IsEmpty)
                 {
-                    if (this.sendQueue.TryDequeue(out SendTask send))
+                    if(this.sendQueue.TryPeek(out SendTask send))
                     {
-                        send.WriteToBuffer();
-                        this.senders.Add(send.Channel);
+                        if (send.Channel.Connected)
+                        {
+                            this.sendQueue.TryDequeue(out SendTask sendTask);
+                            sendTask.WriteToBuffer();
+                            this.senders.Add(sendTask.Channel);
+                        }
                     }
                 }
 

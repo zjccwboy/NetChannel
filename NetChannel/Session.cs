@@ -81,8 +81,8 @@ namespace NetChannel
         {
             try
             {
-                this.netService.Update();
                 OneThreadSynchronizationContext.Instance.Update();
+                this.netService.Update();
             }
             catch(Exception e)
             {
