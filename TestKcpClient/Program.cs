@@ -34,38 +34,42 @@ namespace TestKcpClient
         static void Subscribe(Session session, ANetChannel channel)
         {
             //优先处理完接收的包
-            if(sendCount - recvCount > 0)
+            if (sendCount - recvCount > 0)
+            {
+                if (stopwatch.ElapsedMilliseconds > 5000)
+                {
+                    sendCount = 0;
+                    recvCount = 0;
+                    stopwatch.Restart();
+                }
+                return;
+            }
+
+            if (!channel.Connected)
             {
                 return;
             }
 
-            var send = new Packet { Data = BitConverter.GetBytes(166666) };
+            var send = new Packet { Data = Encoding.UTF8.GetBytes("111111111122222222223333333333444444444455555555556666666666777777777788888888889999999999") };
             for (var i = 1; i <= 1; i++)
             {
                 sendCount++;
-                if (channel.Connected)
+                session.Subscribe(send, (packet) =>
                 {
-                    session.Subscribe(send, (packet) =>
+                    recvCount++;
+                    var data = Encoding.UTF8.GetString(packet.Data);
+                    if (data != "111111111122222222223333333333444444444455555555556666666666777777777788888888889999999999")
                     {
-                        recvCount++;
-                        var data = BitConverter.ToInt32(packet.Data, 0);
-                        if (data != 166666)
-                        {
-                            Console.WriteLine($"解包出错:{data}");
-                            Console.Read();
-                        }
-                        if (recvCount % 10000 == 0)
-                        {
-                            LogRecord.Log(LogLevel.Info, "数据响应测试", $"响应:{10000}个包耗时{stopwatch.ElapsedMilliseconds}毫秒");
-                            stopwatch.Restart();
-                        }
-                    });
-                }
-                else
-                {
-                    LogRecord.Log(LogLevel.Info, "连接断开", $"本地端口:{channel.LocalEndPoint}");
-                }
-            }            
+                        Console.WriteLine($"解包出错:{data}");
+                    }
+                    if (recvCount % 1 == 0)
+                    {
+                        LogRecord.Log(LogLevel.Info, "数据响应测试", $"响应:{10000}个包耗时{stopwatch.ElapsedMilliseconds}毫秒");
+                        Thread.Sleep(1000);
+                        stopwatch.Restart();
+                    }
+                });
+            }
         }
     }
 }
