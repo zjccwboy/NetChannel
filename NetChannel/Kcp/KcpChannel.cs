@@ -128,38 +128,46 @@ namespace NetChannel
         /// </summary>
         public override void StartRecv()
         {
-            int n = kcp.PeekSize();
-            if (n == 0)
-            {
-                return;
-            }
-
-            int count = this.kcp.Recv(cacheBytes);
-            if (count <= 0)
-            {
-                return;
-            }
-
-            RecvParser.WriteBuffer(cacheBytes, 0, count);
             while (true)
             {
-                try
+                int n = kcp.PeekSize();
+                if (n == 0)
                 {
-                    var packet = RecvParser.ReadBuffer();
-                    if (!packet.IsSuccess)
+                    LogRecord.Log(LogLevel.Error, "StartRecv", $"解包失败:{this.RemoteEndPoint}");
+                    return;
+                }
+
+                int count = this.kcp.Recv(cacheBytes);
+                if (count <= 0)
+                {
+                    return;
+                }
+
+                RecvParser.WriteBuffer(cacheBytes, 0, count);
+                while (true)
+                {
+                    try
                     {
-                        LogRecord.Log(LogLevel.Error, "StartRecv", $"解包失败:{this.RemoteEndPoint}");
-                        break;
-                    }
-                    if (!packet.IsHeartbeat)
-                    {
-                        LogRecord.Log(LogLevel.Error, "StartRecv", $"收到远程电脑:{this.RemoteEndPoint}");
-                        if (packet.IsRpc)
+                        var packet = RecvParser.ReadBuffer();
+                        if (!packet.IsSuccess)
                         {
-                            if (RpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
+                            LogRecord.Log(LogLevel.Error, "StartRecv", $"解包失败:{this.RemoteEndPoint}");
+                            break;
+                        }
+                        if (!packet.IsHeartbeat)
+                        {
+                            LogRecord.Log(LogLevel.Error, "StartRecv", $"收到远程电脑:{this.RemoteEndPoint}");
+                            if (packet.IsRpc)
                             {
-                                //执行RPC请求回调
-                                action(packet);
+                                if (RpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
+                                {
+                                    //执行RPC请求回调
+                                    action(packet);
+                                }
+                                else
+                                {
+                                    OnReceive?.Invoke(packet);
+                                }
                             }
                             else
                             {
@@ -168,21 +176,17 @@ namespace NetChannel
                         }
                         else
                         {
-                            OnReceive?.Invoke(packet);
+                            LogRecord.Log(LogLevel.Warn, "HandleRecv", $"接收到客户端:{this.RemoteEndPoint}心跳包.");
                         }
                     }
-                    else
+                    catch (Exception e)
                     {
-                        LogRecord.Log(LogLevel.Warn, "HandleRecv", $"接收到客户端:{this.RemoteEndPoint}心跳包.");
+                        DisConnect();
+                        LogRecord.Log(LogLevel.Warn, "StartRecv", e);
+                        return;
                     }
                 }
-                catch (Exception e)
-                {
-                    DisConnect();
-                    LogRecord.Log(LogLevel.Warn, "StartRecv", e);
-                    return;
-                }
-            }
+            }            
         }
 
         /// <summary>

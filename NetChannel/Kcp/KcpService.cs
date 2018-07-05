@@ -90,9 +90,15 @@ namespace NetChannel
             {
                 startCount++;
                 LogRecord.Log(LogLevel.Warn, "开始接收", startCount.ToString());
-                recvCount = this.acceptor.ReceiveFrom(recvBytes, ref this.ipEndPoint);
+                recvCount = this.acceptor.ReceiveFrom(recvBytes, SocketFlags.None, ref this.ipEndPoint);
                 recvCouut++;
                 LogRecord.Log(LogLevel.Warn, "完成接收", recvCouut.ToString());
+                LogRecord.Log(LogLevel.Notice, "数据长度", recvCount.ToString());
+
+                if (startCount == 55)
+                {
+                    var a = "aaa";
+                }
             }
             catch (Exception e)
             {
@@ -122,7 +128,6 @@ namespace NetChannel
                 }
                 else if (packet.KcpProtocal == KcpNetProtocal.FIN)
                 {
-                    LogRecord.Log(LogLevel.Error, "StartRecv", $"丢弃非法数据包:{this.acceptor.RemoteEndPoint}.");
                     HandleFIN(packet, this.ipEndPoint as IPEndPoint);
                 }
             }
@@ -133,6 +138,10 @@ namespace NetChannel
                 {
                     channel.HandleRecv(recvBytes, 0, recvCount);
                     channel.StartRecv();
+                }
+                else
+                {
+                    LogRecord.Log(LogLevel.Notice, "数据包异常", connectConv.ToString());
                 }
             }
         }
