@@ -78,6 +78,8 @@ namespace NetChannel
             this.StartRecv();
         }
 
+        int recvCouut = 0;
+        int startCount = 0;
         /// <summary>
         /// 开始接收数据包
         /// </summary>
@@ -86,7 +88,11 @@ namespace NetChannel
             int recvCount = 0;
             try
             {
+                startCount++;
+                LogRecord.Log(LogLevel.Warn, "开始接收", startCount.ToString());
                 recvCount = this.acceptor.ReceiveFrom(recvBytes, ref this.ipEndPoint);
+                recvCouut++;
+                LogRecord.Log(LogLevel.Warn, "完成接收", recvCouut.ToString());
             }
             catch (Exception e)
             {
@@ -144,6 +150,7 @@ namespace NetChannel
                 conv = KcpConvIdCreator.CreateId();
             }
             var channel = new KcpChannel(socket, remoteEP as IPEndPoint, this, conv);
+            channel.InitKcp();
             channel.OnConnect = HandleAccept;
             channel.OnConnect?.Invoke(channel);
             ConnectSender.SendACK(this.acceptor, channel.RemoteEndPoint, channel);
@@ -162,10 +169,12 @@ namespace NetChannel
                 return;
             }
             //var channel = new KcpChannel(socket, remoteEP as IPEndPoint, this, packet.ActorMessageId);
-            this.ClientChannel.RemoteEndPoint = remoteEP as IPEndPoint;
-            this.ClientChannel.Id = packet.ActorMessageId;
-            this.ClientChannel.OnConnect = HandleConnect;
-            this.ClientChannel.OnConnect?.Invoke(this.ClientChannel);
+            var channel = this.ClientChannel as KcpChannel;
+            channel.RemoteEndPoint = remoteEP as IPEndPoint;
+            channel.Id = packet.ActorMessageId;
+            channel.InitKcp();
+            channel.OnConnect = HandleConnect;
+            channel.OnConnect?.Invoke(this.ClientChannel);
         }
 
         /// <summary>

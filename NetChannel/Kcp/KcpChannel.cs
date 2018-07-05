@@ -50,9 +50,17 @@ namespace NetChannel
             RecvParser = new PacketParser();
             SendParser = new PacketParser();
 
-            this.kcp = new Kcp(this.Id, this.Output);
-            kcp.SetMtu(512);
-            kcp.NoDelay(1, 10, 2, 1);  //fast
+
+        }
+
+        public void InitKcp()
+        {
+            if(this.kcp == null)
+            {
+                this.kcp = new Kcp(this.Id, this.Output);
+                kcp.SetMtu(512);
+                kcp.NoDelay(1, 10, 2, 1);  //fast
+            }
         }
 
         /// <summary>
@@ -120,44 +128,38 @@ namespace NetChannel
         /// </summary>
         public override void StartRecv()
         {
+            int n = kcp.PeekSize();
+            if (n == 0)
+            {
+                return;
+            }
+
+            int count = this.kcp.Recv(cacheBytes);
+            if (count <= 0)
+            {
+                return;
+            }
+
+            RecvParser.WriteBuffer(cacheBytes, 0, count);
             while (true)
             {
-                int n = kcp.PeekSize();
-                if (n == 0)
+                try
                 {
-                    break;
-                }
-
-                int count = this.kcp.Recv(cacheBytes);
-                if (count <= 0)
-                {
-                    break;
-                }
-
-                RecvParser.WriteBuffer(cacheBytes, 0, count);
-                while (true)
-                {
-                    try
+                    var packet = RecvParser.ReadBuffer();
+                    if (!packet.IsSuccess)
                     {
-                        var packet = RecvParser.ReadBuffer();
-                        if (!packet.IsSuccess)
+                        LogRecord.Log(LogLevel.Error, "StartRecv", $"解包失败:{this.RemoteEndPoint}");
+                        break;
+                    }
+                    if (!packet.IsHeartbeat)
+                    {
+                        LogRecord.Log(LogLevel.Error, "StartRecv", $"收到远程电脑:{this.RemoteEndPoint}");
+                        if (packet.IsRpc)
                         {
-                            break;
-                        }
-                        if (!packet.IsHeartbeat)
-                        {
-                            //LogRecord.Log(LogLevel.Error, "StartRecv", $"收到远程电脑:{recvResult.RemoteEndPoint}");
-                            if (packet.IsRpc)
+                            if (RpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
                             {
-                                if (RpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
-                                {
-                                    //执行RPC请求回调
-                                    action(packet);
-                                }
-                                else
-                                {
-                                    OnReceive?.Invoke(packet);
-                                }
+                                //执行RPC请求回调
+                                action(packet);
                             }
                             else
                             {
@@ -166,15 +168,19 @@ namespace NetChannel
                         }
                         else
                         {
-                            LogRecord.Log(LogLevel.Warn, "HandleRecv", $"接收到客户端:{this.RemoteEndPoint}心跳包.");
+                            OnReceive?.Invoke(packet);
                         }
                     }
-                    catch(Exception e)
+                    else
                     {
-                        DisConnect();
-                        LogRecord.Log(LogLevel.Warn, "StartRecv", e);
-                        return;
+                        LogRecord.Log(LogLevel.Warn, "HandleRecv", $"接收到客户端:{this.RemoteEndPoint}心跳包.");
                     }
+                }
+                catch (Exception e)
+                {
+                    DisConnect();
+                    LogRecord.Log(LogLevel.Warn, "StartRecv", e);
+                    return;
                 }
             }
         }
