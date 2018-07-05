@@ -124,8 +124,8 @@ namespace NetChannel
                 uint connectConv = BitConverter.ToUInt32(recvBytes, 0);
                 if (this.Channels.TryGetValue(connectConv, out ANetChannel channel))
                 {
-                    var kcpChannel = channel as KcpChannel;
-                    kcpChannel.HandleRecv(recvBytes, 0, recvCount);
+                    channel.HandleRecv(recvBytes, 0, recvCount);
+                    channel.StartRecv();
                 }
             }
         }
@@ -217,7 +217,6 @@ namespace NetChannel
                 channel.Connected = true;
                 AddChannel(channel);
                 AddHandler(channel);
-                //channel.StartRecv();
                 LogRecord.Log(LogLevel.Info, "HandleConnect", $"连接服务端:{channel.RemoteEndPoint}成功.");
             }
             catch (Exception e)

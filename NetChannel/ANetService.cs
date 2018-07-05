@@ -141,7 +141,7 @@ namespace NetChannel
         /// <summary>
         /// 所有管道接收数据
         /// </summary>
-        protected void HandleReceive()
+        private void HandleReceive()
         {
             var channels = Channels.Values;
             foreach (var channel in channels)
@@ -229,9 +229,8 @@ namespace NetChannel
         {
             try
             {
-                if (Channels.TryRemove(channel.Id, out ANetChannel valu))
+                if (Channels.TryRemove(channel.Id, out ANetChannel value))
                 {
-                    Handlers.TryRemove(channel.Id, out IEnumerable<IMessageHandler> handler);
                     LogRecord.Log(LogLevel.Info, "HandleDisConnectOnServer", $"客户端:{channel.RemoteEndPoint}连接断开.");
                 }
             }
@@ -249,7 +248,7 @@ namespace NetChannel
         {
             try
             {
-                if (Channels.TryRemove(channel.Id, out ANetChannel valu))
+                if (Channels.TryRemove(channel.Id, out ANetChannel value))
                 {
                     LogRecord.Log(LogLevel.Info, "HandleDisConnectOnClient", $"与服务端{channel.RemoteEndPoint}连接断开.");
                 }

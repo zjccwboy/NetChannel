@@ -179,6 +179,17 @@ namespace NetChannel
         public abstract void StartRecv();
 
         /// <summary>
+        /// 处理KCP接收
+        /// </summary>
+        /// <param name="bytes"></param>
+        /// <param name="offset"></param>
+        /// <param name="lenght"></param>
+        public virtual void HandleRecv(byte[] bytes, int offset, int lenght)
+        {
+
+        }
+
+        /// <summary>
         /// 添加一个发送数据包到发送缓冲区队列中
         /// </summary>
         /// <param name="packet"></param>

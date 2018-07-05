@@ -83,6 +83,18 @@ namespace NetChannel
         {
             try
             {
+                var now = TimeUitls.Now();
+                if (now - this.LastConnectTime < ANetChannel.ReConnectInterval)
+                {
+                    return;
+                }
+
+                this.LastConnectTime = now;
+
+                if (Connected)
+                {
+                    return;
+                }
                 ConnectSender.SendSYN(this.NetSocket, this.RemoteEndPoint);
             }
             catch (Exception e)
@@ -97,7 +109,7 @@ namespace NetChannel
         /// <param name="bytes"></param>
         /// <param name="offset"></param>
         /// <param name="lenght"></param>
-        public void HandleRecv(byte[] bytes, int offset, int lenght)
+        public override void HandleRecv(byte[] bytes, int offset, int lenght)
         {
             cacheBytes = bytes;
             this.LastRecvTime = TimeUitls.Now();
