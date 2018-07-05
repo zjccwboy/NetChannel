@@ -353,8 +353,8 @@ namespace NetChannel
                 }
                 catch(Exception ex)
                 {
-                    LogRecord.Log(LogLevel.Warn, "OnRecvComplete", ex);
                     DisConnect();
+                    LogRecord.Log(LogLevel.Warn, "OnRecvComplete", ex);
                     return;
                 }
 

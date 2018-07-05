@@ -138,20 +138,27 @@ namespace NetChannel
                 RecvParser.WriteBuffer(cacheBytes, 0, count);
                 while (true)
                 {
-                    var packet = RecvParser.ReadBuffer();
-                    if (!packet.IsSuccess)
+                    try
                     {
-                        break;
-                    }
-                    if (!packet.IsHeartbeat)
-                    {
-                        //LogRecord.Log(LogLevel.Error, "StartRecv", $"收到远程电脑:{recvResult.RemoteEndPoint}");
-                        if (packet.IsRpc)
+                        var packet = RecvParser.ReadBuffer();
+                        if (!packet.IsSuccess)
                         {
-                            if (RpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
+                            break;
+                        }
+                        if (!packet.IsHeartbeat)
+                        {
+                            //LogRecord.Log(LogLevel.Error, "StartRecv", $"收到远程电脑:{recvResult.RemoteEndPoint}");
+                            if (packet.IsRpc)
                             {
-                                //执行RPC请求回调
-                                action(packet);
+                                if (RpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
+                                {
+                                    //执行RPC请求回调
+                                    action(packet);
+                                }
+                                else
+                                {
+                                    OnReceive?.Invoke(packet);
+                                }
                             }
                             else
                             {
@@ -160,12 +167,14 @@ namespace NetChannel
                         }
                         else
                         {
-                            OnReceive?.Invoke(packet);
+                            LogRecord.Log(LogLevel.Warn, "HandleRecv", $"接收到客户端:{this.RemoteEndPoint}心跳包.");
                         }
                     }
-                    else
+                    catch(Exception e)
                     {
-                        LogRecord.Log(LogLevel.Warn, "HandleRecv", $"接收到客户端:{this.RemoteEndPoint}心跳包.");
+                        DisConnect();
+                        LogRecord.Log(LogLevel.Warn, "StartRecv", e);
+                        return;
                     }
                 }
             }
@@ -190,7 +199,7 @@ namespace NetChannel
                         this.SendParser.Buffer.UpdateRead(count);
                         this.LastSendTime = TimeUitls.Now();
                     }
-                }                
+                }
             }
             SetKcpSendTime();
         }
@@ -212,6 +221,7 @@ namespace NetChannel
             try
             {
                 Connected = false;
+                ConnectSender.SendFIN(this.NetSocket, this.RemoteEndPoint, this);
                 OnDisConnect?.Invoke(this);
             }
             catch { }
@@ -224,7 +234,15 @@ namespace NetChannel
         /// <param name="count"></param>
         private void Output(byte[] bytes, int count)
         {
-            this.NetSocket.SendTo(bytes, 0, count, SocketFlags.None, this.RemoteEndPoint);
+            try
+            {
+                this.NetSocket.SendTo(bytes, 0, count, SocketFlags.None, this.RemoteEndPoint);
+            }
+            catch(Exception e)
+            {
+                DisConnect();
+                LogRecord.Log(LogLevel.Warn, "Output", e);
+            }
         }
 
         /// <summary>

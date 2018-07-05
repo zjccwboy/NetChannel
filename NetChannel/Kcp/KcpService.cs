@@ -95,7 +95,7 @@ namespace NetChannel
 
             if (recvCount == 3 || recvCount == 7)
             {
-                //客户端握手处理
+                //握手处理
                 connectParser.WriteBuffer(recvBytes, 0, recvCount);
                 var packet = connectParser.ReadBuffer();
                 if (!packet.IsSuccess)
@@ -147,7 +147,6 @@ namespace NetChannel
             ConnectSender.SendACK(this.acceptor, channel.RemoteEndPoint, channel);
         }
 
-        private TaskCompletionSource<KcpChannel> tcs;
         /// <summary>
         /// 处理连接请求ACK应答
         /// </summary>
@@ -158,15 +157,6 @@ namespace NetChannel
             var channel = new KcpChannel(socket, this, packet.ActorMessageId);
             channel.OnConnect = HandleConnect;
             channel.OnConnect?.Invoke(channel);
-            if (tcs != null)
-            {
-                var connTcs = tcs;
-                tcs = null;
-                if (!connTcs.Task.IsCompleted)
-                {
-                    connTcs.SetResult(channel);
-                }
-            }
         }
 
         /// <summary>

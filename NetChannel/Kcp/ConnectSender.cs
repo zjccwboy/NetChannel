@@ -55,7 +55,7 @@ namespace NetChannel
         /// <param name="socket"></param>
         /// <param name="endPoint"></param>
         /// <param name="channel"></param>
-        private static void SendFIN(Socket socket, IPEndPoint endPoint, KcpChannel channel)
+        public static void SendFIN(Socket socket, IPEndPoint endPoint, KcpChannel channel)
         {
             var finPacket = new Packet
             {
