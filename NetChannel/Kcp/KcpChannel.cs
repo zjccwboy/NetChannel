@@ -40,7 +40,7 @@ namespace NetChannel
         /// <summary>
         /// 构造函数,Connect
         /// </summary>
-        /// <param name="socket">Ip/端口</param>
+        /// <param name="socket">Socket</param>
         /// <param name="netService">网络服务</param>
         /// <param name="connectConv">网络连接Conv</param>
         public KcpChannel(Socket socket, IPEndPoint endPoint, ANetService netService, uint connectConv) : base(netService, connectConv)

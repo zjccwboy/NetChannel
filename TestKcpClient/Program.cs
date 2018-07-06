@@ -31,7 +31,6 @@ namespace TestKcpClient
         static Stopwatch stopwatch = new Stopwatch();
         static int sendCount = 0;
         static int recvCount = 0;
-
         static int successful = 0;
         static void Subscribe(Session session, ANetChannel channel)
         {
@@ -60,11 +59,6 @@ namespace TestKcpClient
                 {
                     successful++;
                     recvCount++;
-
-                    if(successful > 85)
-                    {
-                        var a = "a";
-                    }
                     var data = Encoding.UTF8.GetString(packet.Data);
                     if (data != "111111111122222222223333333333444444444455555555556666666666777777777788888888889999999999")
                     {

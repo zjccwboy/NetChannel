@@ -64,6 +64,7 @@ namespace NetChannel
                 return;
             }
             var channel = new TcpChannel(this.endPoint, e.AcceptSocket, this);
+            channel.RemoteEndPoint = e.AcceptSocket.RemoteEndPoint as IPEndPoint;
             HandleAccept(channel);
 
             this.Accept();
