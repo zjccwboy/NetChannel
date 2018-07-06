@@ -78,8 +78,8 @@ namespace NetChannel
             this.StartRecv();
         }
 
-        int recvCouut = 0;
-        int startCount = 0;
+        //int recvCouut = 0;
+        //int startCount = 0;
         /// <summary>
         /// 开始接收数据包
         /// </summary>
@@ -88,17 +88,17 @@ namespace NetChannel
             int recvCount = 0;
             try
             {
-                startCount++;
-                LogRecord.Log(LogLevel.Warn, "开始接收", startCount.ToString());
+                //startCount++;
+                //LogRecord.Log(LogLevel.Warn, "开始接收", startCount.ToString());
                 recvCount = this.acceptor.ReceiveFrom(recvBytes, SocketFlags.None, ref this.ipEndPoint);
-                recvCouut++;
-                LogRecord.Log(LogLevel.Warn, "完成接收", recvCouut.ToString());
-                LogRecord.Log(LogLevel.Notice, "数据长度", recvCount.ToString());
+                //recvCouut++;
+                //LogRecord.Log(LogLevel.Warn, "完成接收", recvCouut.ToString());
+                //LogRecord.Log(LogLevel.Notice, "数据长度", recvCount.ToString());
 
-                if (startCount == 55)
-                {
-                    var a = "aaa";
-                }
+                //if (startCount == 55)
+                //{
+                //    var a = "aaa";
+                //}
             }
             catch (Exception e)
             {

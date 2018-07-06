@@ -133,7 +133,7 @@ namespace NetChannel
                 int n = kcp.PeekSize();
                 if (n == 0)
                 {
-                    LogRecord.Log(LogLevel.Error, "StartRecv", $"解包失败:{this.RemoteEndPoint}");
+                    //LogRecord.Log(LogLevel.Error, "StartRecv", $"解包失败:{this.RemoteEndPoint}");
                     return;
                 }
 
@@ -151,12 +151,12 @@ namespace NetChannel
                         var packet = RecvParser.ReadBuffer();
                         if (!packet.IsSuccess)
                         {
-                            LogRecord.Log(LogLevel.Error, "StartRecv", $"解包失败:{this.RemoteEndPoint}");
+                            //LogRecord.Log(LogLevel.Error, "StartRecv", $"解包失败:{this.RemoteEndPoint}");
                             break;
                         }
                         if (!packet.IsHeartbeat)
                         {
-                            LogRecord.Log(LogLevel.Error, "StartRecv", $"收到远程电脑:{this.RemoteEndPoint}");
+                            //LogRecord.Log(LogLevel.Error, "StartRecv", $"收到远程电脑:{this.RemoteEndPoint}");
                             if (packet.IsRpc)
                             {
                                 if (RpcDictionarys.TryRemove(packet.RpcId, out Action<Packet> action))
@@ -259,8 +259,8 @@ namespace NetChannel
         /// </summary>
         private void SetKcpSendTime()
         {
-            kcp.Update(this.sendIntervalTime);
             sendIntervalTime = TimeUitls.Now();
+            kcp.Update(this.sendIntervalTime);
             this.sendIntervalTime = this.kcp.Check(this.sendIntervalTime);
         }        
 
