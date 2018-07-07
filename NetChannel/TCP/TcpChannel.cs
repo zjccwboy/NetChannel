@@ -371,7 +371,6 @@ namespace NetChannel
                 return;
             }
 
-            this.LastSendTime = TimeUitls.Now();
             SocketAsyncEventArgs e = (SocketAsyncEventArgs)o;
 
             if (e.SocketError != SocketError.Success)

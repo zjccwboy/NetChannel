@@ -88,17 +88,12 @@ namespace NetChannel
             int recvCount = 0;
             try
             {
-                //startCount++;
-                //LogRecord.Log(LogLevel.Warn, "开始接收", startCount.ToString());
-                recvCount = this.acceptor.ReceiveFrom(recvBytes, SocketFlags.None, ref this.ipEndPoint);
-                //recvCouut++;
-                //LogRecord.Log(LogLevel.Warn, "完成接收", recvCouut.ToString());
-                //LogRecord.Log(LogLevel.Notice, "数据长度", recvCount.ToString());
+                if(this.acceptor.Available <= 0)
+                {
+                    return;
+                }
 
-                //if (startCount == 55)
-                //{
-                //    var a = "aaa";
-                //}
+                recvCount = this.acceptor.ReceiveFrom(recvBytes, SocketFlags.None, ref this.ipEndPoint);
             }
             catch (Exception e)
             {

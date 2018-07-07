@@ -24,7 +24,7 @@ namespace NetChannel
         public const byte ACK = 2;
         /// <summary>
         /// 断开连接请求
-        /// </summary>socketClient
+        /// </summary>
         public const byte FIN = 3;
     }
 
@@ -35,7 +35,6 @@ namespace NetChannel
     {
         private Kcp kcp;
         private byte[] cacheBytes;
-        private uint sendIntervalTime = TimeUitls.Now();
 
         /// <summary>
         /// 构造函数,Connect
@@ -49,16 +48,14 @@ namespace NetChannel
             this.NetSocket = socket;
             RecvParser = new PacketParser();
             SendParser = new PacketParser();
-
-
         }
 
         public void InitKcp()
         {
             if(this.kcp == null)
             {
-                this.kcp = new Kcp(this.Id, this.Output);
-                kcp.SetMtu(512);
+                kcp = new Kcp(this.Id, this);
+                kcp.SetOutput(this.Output);
                 kcp.NoDelay(1, 10, 2, 1);  //fast
             }
         }
@@ -137,7 +134,7 @@ namespace NetChannel
                     return;
                 }
 
-                int count = this.kcp.Recv(cacheBytes);
+                int count = this.kcp.Recv(cacheBytes, 0, cacheBytes.Length);
                 if (count <= 0)
                 {
                     return;
@@ -151,9 +148,11 @@ namespace NetChannel
                         var packet = RecvParser.ReadBuffer();
                         if (!packet.IsSuccess)
                         {
-                            //LogRecord.Log(LogLevel.Error, "StartRecv", $"解包失败:{this.RemoteEndPoint}");
                             break;
                         }
+
+                        this.LastRecvTime = TimeUitls.Now();
+
                         if (!packet.IsHeartbeat)
                         {
                             //LogRecord.Log(LogLevel.Error, "StartRecv", $"收到远程电脑:{this.RemoteEndPoint}");
@@ -203,10 +202,9 @@ namespace NetChannel
                     var length = this.SendParser.Buffer.FirstDataSize;
                     length = length > 488 ? 488 : length;
                     var count = kcp.Send(this.SendParser.Buffer.First, offset, length);
-                    if (count > 0)
+                    if (count >= 0)
                     {
-                        this.SendParser.Buffer.UpdateRead(count);
-                        this.LastSendTime = TimeUitls.Now();
+                        this.SendParser.Buffer.UpdateRead(length);
                     }
                 }
             }
@@ -241,7 +239,8 @@ namespace NetChannel
         /// </summary>
         /// <param name="bytes"></param>
         /// <param name="count"></param>
-        private void Output(byte[] bytes, int count)
+        /// <param name="user"></param>
+        private void Output(byte[] bytes, int count, object user)
         {
             try
             {
@@ -259,9 +258,12 @@ namespace NetChannel
         /// </summary>
         private void SetKcpSendTime()
         {
-            sendIntervalTime = TimeUitls.Now();
-            kcp.Update(this.sendIntervalTime);
-            this.sendIntervalTime = this.kcp.Check(this.sendIntervalTime);
+            var now = TimeUitls.Now();
+            if(now >= this.LastSendTime)
+            {
+                kcp.Update(now);
+                this.LastSendTime = this.kcp.Check(now);
+            }
         }        
 
     }
