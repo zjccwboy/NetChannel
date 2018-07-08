@@ -67,7 +67,7 @@ namespace TestKcpClient
                     if (recvCount % 10 == 0)
                     {
                         LogRecord.Log(LogLevel.Info, "数据响应测试", $"响应:{10}个包耗时{stopwatch.ElapsedMilliseconds}毫秒");
-                        //Thread.Sleep(1000);
+                        Thread.Sleep(100);
                         stopwatch.Restart();
                     }
                 });

@@ -35,6 +35,8 @@ namespace NetChannel
     {
         private Kcp kcp;
         private byte[] cacheBytes;
+        private int singlePacketLimit = Kcp.IKCP_MTU_DEF - Kcp.IKCP_OVERHEAD;
+        private uint lastCheckTime = TimeUitls.Now();
 
         /// <summary>
         /// 构造函数,Connect
@@ -52,12 +54,9 @@ namespace NetChannel
 
         public void InitKcp()
         {
-            if(this.kcp == null)
-            {
-                kcp = new Kcp(this.Id, this);
-                kcp.SetOutput(this.Output);
-                kcp.NoDelay(1, 10, 2, 1);  //fast
-            }
+            kcp = new Kcp(this.Id, this);
+            kcp.SetOutput(this.Output);
+            kcp.NoDelay(1, 10, 2, 1);  //fast
         }
 
         /// <summary>
@@ -86,12 +85,13 @@ namespace NetChannel
         {
             try
             {
-                if (this.TimeNow - this.LastConnectTime < ANetChannel.ReConnectInterval)
+                var now = TimeUitls.Now();
+                if (now - this.LastConnectTime < ANetChannel.ReConnectInterval)
                 {
                     return;
                 }
 
-                this.LastConnectTime = this.TimeNow;
+                this.LastConnectTime = now;
 
                 if (Connected)
                 {
@@ -124,6 +124,7 @@ namespace NetChannel
         /// </summary>
         public override void StartRecv()
         {
+            this.LastRecvTime = TimeUitls.Now();
             SetKcpSendTime();
             while (true)
             {
@@ -150,8 +151,6 @@ namespace NetChannel
                         {
                             break;
                         }
-
-                        this.LastRecvTime = TimeUitls.Now();
 
                         if (!packet.IsHeartbeat)
                         {
@@ -186,7 +185,7 @@ namespace NetChannel
                     }
                 }
             }            
-        }
+        }        
 
         /// <summary>
         /// 开始发送KCP数据包
@@ -200,12 +199,12 @@ namespace NetChannel
                 {
                     var offset = this.SendParser.Buffer.FirstReadOffset;
                     var length = this.SendParser.Buffer.FirstDataSize;
-                    length = length > 1300 ? 1300 : length;
+                    length = length > singlePacketLimit ? singlePacketLimit : length;
                     kcp.Send(this.SendParser.Buffer.First, offset, length);
                     this.SendParser.Buffer.UpdateRead(length);
-                    if(length >= 1300)
+                    if(length >= singlePacketLimit)
                     {
-                        this.kcp.Update(TimeNow);
+                        SetKcpSendTime();
                     }
                 }
                 SetKcpSendTime();
@@ -246,7 +245,7 @@ namespace NetChannel
             try
             {
                 this.NetSocket.SendTo(bytes, 0, count, SocketFlags.None, this.RemoteEndPoint);
-                //LogRecord.Log(LogLevel.Error, "Output", $"发送到远程电脑:{this.RemoteEndPoint}");
+                this.LastSendTime = TimeUitls.Now();
             }
             catch(Exception e)
             {
@@ -260,10 +259,10 @@ namespace NetChannel
         /// </summary>
         private void SetKcpSendTime()
         {    
-            if (this.TimeNow >= this.LastSendTime)
+            if (this.TimeNow >= this.lastCheckTime)
             {
                 kcp.Update(this.TimeNow);
-                this.LastSendTime = this.kcp.Check(this.TimeNow);
+                this.lastCheckTime = this.kcp.Check(this.TimeNow);
             }
         }
     }

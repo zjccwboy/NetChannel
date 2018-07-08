@@ -88,7 +88,7 @@ namespace NetChannel
             int recvCount = 0;
             try
             {
-                if(this.acceptor.Available <= 0)
+                if(this.acceptor.Available == 0)
                 {
                     return;
                 }
@@ -172,7 +172,6 @@ namespace NetChannel
             {
                 return;
             }
-            //var channel = new KcpChannel(socket, remoteEP as IPEndPoint, this, packet.ActorMessageId);
             var channel = this.ClientChannel as KcpChannel;
             channel.RemoteEndPoint = remoteEP as IPEndPoint;
             channel.Id = packet.ActorMessageId;
@@ -190,11 +189,8 @@ namespace NetChannel
         {
             if (this.Channels.TryGetValue(packet.ActorMessageId, out ANetChannel channel))
             {
-                if (channel.Connected)
-                {
-                    channel.Connected = false;
-                    channel.OnDisConnect?.Invoke(channel);
-                }
+                channel.Connected = false;
+                channel.OnDisConnect?.Invoke(channel);
             }
         }
 
