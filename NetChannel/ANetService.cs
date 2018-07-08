@@ -118,6 +118,7 @@ namespace NetChannel
                         if (send.Channel.Connected)
                         {
                             this.sendQueue.TryDequeue(out SendTask sendTask);
+                            sendTask.Channel.TimeNow = TimeUitls.Now();
                             sendTask.WriteToBuffer();
                             this.senders.Add(sendTask.Channel);
                         }

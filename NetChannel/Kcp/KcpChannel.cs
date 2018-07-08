@@ -86,13 +86,12 @@ namespace NetChannel
         {
             try
             {
-                var now = TimeUitls.Now();
-                if (now - this.LastConnectTime < ANetChannel.ReConnectInterval)
+                if (this.TimeNow - this.LastConnectTime < ANetChannel.ReConnectInterval)
                 {
                     return;
                 }
 
-                this.LastConnectTime = now;
+                this.LastConnectTime = this.TimeNow;
 
                 if (Connected)
                 {
@@ -116,7 +115,7 @@ namespace NetChannel
         public override void HandleRecv(byte[] bytes, int offset, int lenght)
         {
             cacheBytes = bytes;
-            this.LastRecvTime = TimeUitls.Now();
+            this.LastRecvTime = this.TimeNow;
             this.kcp.Input(bytes, offset, lenght);
         }
 
@@ -125,6 +124,7 @@ namespace NetChannel
         /// </summary>
         public override void StartRecv()
         {
+            SetKcpSendTime();
             while (true)
             {
                 int n = kcp.PeekSize();
@@ -200,15 +200,16 @@ namespace NetChannel
                 {
                     var offset = this.SendParser.Buffer.FirstReadOffset;
                     var length = this.SendParser.Buffer.FirstDataSize;
-                    length = length > 488 ? 488 : length;
-                    var count = kcp.Send(this.SendParser.Buffer.First, offset, length);
-                    if (count >= 0)
+                    length = length > 1300 ? 1300 : length;
+                    kcp.Send(this.SendParser.Buffer.First, offset, length);
+                    this.SendParser.Buffer.UpdateRead(length);
+                    if(length >= 1300)
                     {
-                        this.SendParser.Buffer.UpdateRead(length);
+                        this.kcp.Update(TimeNow);
                     }
                 }
+                SetKcpSendTime();
             }
-            SetKcpSendTime();
         }
 
         /// <summary>
@@ -245,6 +246,7 @@ namespace NetChannel
             try
             {
                 this.NetSocket.SendTo(bytes, 0, count, SocketFlags.None, this.RemoteEndPoint);
+                //LogRecord.Log(LogLevel.Error, "Output", $"发送到远程电脑:{this.RemoteEndPoint}");
             }
             catch(Exception e)
             {
@@ -257,14 +259,12 @@ namespace NetChannel
         /// 设置KCP重传时间
         /// </summary>
         private void SetKcpSendTime()
-        {
-            var now = TimeUitls.Now();
-            if(now >= this.LastSendTime)
+        {    
+            if (this.TimeNow >= this.LastSendTime)
             {
-                kcp.Update(now);
-                this.LastSendTime = this.kcp.Check(now);
+                kcp.Update(this.TimeNow);
+                this.LastSendTime = this.kcp.Check(this.TimeNow);
             }
-        }        
-
+        }
     }
 }

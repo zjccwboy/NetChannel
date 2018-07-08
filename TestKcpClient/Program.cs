@@ -37,12 +37,12 @@ namespace TestKcpClient
             //优先处理完接收的包
             //if (sendCount - recvCount > 0)
             //{
-            //    if (stopwatch.ElapsedMilliseconds > 5000)
-            //    {
-            //        sendCount = 0;
-            //        recvCount = 0;
-            //        stopwatch.Restart();
-            //    }
+            //    //if (stopwatch.ElapsedMilliseconds > 5000)
+            //    //{
+            //    //    sendCount = 0;
+            //    //    recvCount = 0;
+            //    //    stopwatch.Restart();
+            //    //}
             //    return;
             //}
 
@@ -52,7 +52,7 @@ namespace TestKcpClient
             }
 
             var send = new Packet { Data = Encoding.UTF8.GetBytes("111111111122222222223333333333444444444455555555556666666666777777777788888888889999999999") };
-            for (var i = 1; i <= 1000; i++)
+            for (var i = 1; i <= 10; i++)
             {
                 sendCount++;
                 session.Subscribe(send, (packet) =>
@@ -64,10 +64,10 @@ namespace TestKcpClient
                     {
                         Console.WriteLine($"解包出错:{data}");
                     }
-                    if (recvCount % 1000 == 0)
+                    if (recvCount % 10 == 0)
                     {
-                        LogRecord.Log(LogLevel.Info, "数据响应测试", $"响应:{10000}个包耗时{stopwatch.ElapsedMilliseconds}毫秒");
-                        Thread.Sleep(1000);
+                        LogRecord.Log(LogLevel.Info, "数据响应测试", $"响应:{10}个包耗时{stopwatch.ElapsedMilliseconds}毫秒");
+                        //Thread.Sleep(1000);
                         stopwatch.Restart();
                     }
                 });

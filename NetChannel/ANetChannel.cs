@@ -113,6 +113,11 @@ namespace NetChannel
         public uint LastSendTime { get; set; } = TimeUitls.Now();
 
         /// <summary>
+        /// 当前操作时间
+        /// </summary>
+        public uint TimeNow = TimeUitls.Now();
+
+        /// <summary>
         /// 接收回调事件
         /// </summary>
         public Action<Packet> OnReceive;
