@@ -35,16 +35,16 @@ namespace TestKcpClient
         static void Subscribe(Session session, ANetChannel channel)
         {
             //优先处理完接收的包
-            //if (sendCount - recvCount > 0)
-            //{
-            //    //if (stopwatch.ElapsedMilliseconds > 5000)
-            //    //{
-            //    //    sendCount = 0;
-            //    //    recvCount = 0;
-            //    //    stopwatch.Restart();
-            //    //}
-            //    return;
-            //}
+            if (sendCount - recvCount > 0)
+            {
+                //if (stopwatch.ElapsedMilliseconds > 5000)
+                //{
+                //    sendCount = 0;
+                //    recvCount = 0;
+                //    stopwatch.Restart();
+                //}
+                return;
+            }
 
             if (!channel.Connected)
             {
@@ -66,6 +66,8 @@ namespace TestKcpClient
                     }
                     if (recvCount % 10 == 0)
                     {
+                        sendCount = 0;
+                        recvCount = 0;
                         LogRecord.Log(LogLevel.Info, "数据响应测试", $"响应:{10}个包耗时{stopwatch.ElapsedMilliseconds}毫秒");
                         Thread.Sleep(100);
                         stopwatch.Restart();

@@ -1,1 +1,1 @@
-for /l %%i in (1,1,30) do start TestKcpClient.exe
+for /l %%i in (1,1,10) do start TestKcpClient.exe
