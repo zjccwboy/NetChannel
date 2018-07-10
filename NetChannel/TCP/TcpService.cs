@@ -36,7 +36,7 @@ namespace NetChannel
             {
                 this.acceptor = new Socket(AddressFamily.InterNetwork, SocketType.Stream, ProtocolType.Tcp);
                 this.acceptor.SetSocketOption(SocketOptionLevel.Socket, SocketOptionName.ReuseAddress, true);
-                this.innArgs.Completed += this.OnAcceptComplete;
+                this.innArgs.Completed += this.OnComplete;
 
                 this.acceptor.Bind(this.endPoint);
                 this.acceptor.Listen(1000);
@@ -47,16 +47,26 @@ namespace NetChannel
             {
                 return;
             }
-            OnAcceptComplete(this, this.innArgs);
+            OnComplete(this, this.innArgs);
         }
 
-        private void OnAcceptComplete(object sender, SocketAsyncEventArgs o)
+        private void OnComplete(object sender, SocketAsyncEventArgs o)
+        {
+            switch (o.LastOperation)
+            {
+                case SocketAsyncOperation.Accept:
+                    OneThreadSynchronizationContext.Instance.Post(this.OnAcceptComplete, o);
+                    break;
+            }
+        }
+
+        private void OnAcceptComplete(object o)
         {
             if (this.acceptor == null)
             {
                 return;
             }
-            SocketAsyncEventArgs e = o;
+            SocketAsyncEventArgs e = o as SocketAsyncEventArgs;
 
             if (e.SocketError != SocketError.Success)
             {
