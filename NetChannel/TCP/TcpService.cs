@@ -50,13 +50,15 @@ namespace NetChannel
             OnComplete(this, this.innArgs);
         }
 
-        private void OnComplete(object sender, SocketAsyncEventArgs o)
+        private void OnComplete(object sender, SocketAsyncEventArgs e)
         {
-            switch (o.LastOperation)
+            switch (e.LastOperation)
             {
                 case SocketAsyncOperation.Accept:
-                    OneThreadSynchronizationContext.Instance.Post(this.OnAcceptComplete, o);
+                    OneThreadSynchronizationContext.Instance.Post(this.OnAcceptComplete, e);
                     break;
+                default:
+                    throw new Exception($"socket error: {e.LastOperation}");
             }
         }
 
