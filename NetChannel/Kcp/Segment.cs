@@ -1,62 +1,60 @@
-﻿//using System;
-//using System.Collections.Generic;
-//using System.Text;
+﻿using System;
+using System.Collections.Generic;
+using System.Text;
 
-//namespace NetChannel
-//{
-//    /// <summary>
-//    /// KCP Segment Definition
-//    /// KCP分片包定义
-//    /// </summary>
-//    internal class Segment
-//    {
-//        internal UInt32 conv;
-//        internal UInt32 cmd;
-//        internal UInt32 frg;
-//        internal UInt32 wnd;
-//        internal UInt32 ts;
-//        internal UInt32 sn;
-//        internal UInt32 una;
-//        internal UInt32 resendts;
-//        internal UInt32 rto;
-//        internal UInt32 fastack;
-//        internal UInt32 xmit;
-//        internal byte[] data;
+namespace NetChannel
+{
+    /// <summary>
+    /// KCP Segment Definition
+    /// KCP分片包定义
+    /// </summary>
+    internal class Segment : IDisposable
+    {
+        internal uint conv;
+        internal uint cmd;
+        internal uint frg;
+        internal uint wnd;
+        internal uint ts;
+        internal uint sn;
+        internal uint una;
+        internal uint resendts;
+        internal uint rto;
+        internal uint faskack;
+        internal uint xmit;
+        internal byte[] data { get; }
 
-//        internal void flush()
-//        {
-//            conv = 0;
-//            cmd = 0;
-//            frg = 0;
-//            wnd = 0;
-//            ts = 0;
-//            sn = 0;
-//            una = 0;
-//            resendts = 0;
-//            rto = 0;
-//            fastack = 0;
-//            xmit = 0;
-//        }
+        internal Segment(int size = 0)
+        {
+            data = new byte[size];
+        }
 
-//        internal Segment(int size)
-//        {
-//            this.data = new byte[size];
-//        }
+        internal void Encode(byte[] ptr, ref int offset)
+        {
+            uint len = (uint)data.Length;
+            Kcp.ikcp_encode32u(ptr, offset, conv);
+            Kcp.ikcp_encode8u(ptr, offset + 4, (byte)cmd);
+            Kcp.ikcp_encode8u(ptr, offset + 5, (byte)frg);
+            Kcp.ikcp_encode16u(ptr, offset + 6, (ushort)wnd);
+            Kcp.ikcp_encode32u(ptr, offset + 8, ts);
+            Kcp.ikcp_encode32u(ptr, offset + 12, sn);
+            Kcp.ikcp_encode32u(ptr, offset + 16, una);
+            Kcp.ikcp_encode32u(ptr, offset + 20, len);
+            offset += Kcp.IKCP_OVERHEAD;
+        }
 
-//        // encode a segment into buffer
-//        internal int encode(byte[] ptr, int offset)
-//        {
-//            var offset_ = offset;
-
-//            offset += Kcp.ikcp_encode32u(ptr, offset, conv);
-//            offset += Kcp.ikcp_encode8u(ptr, offset, (byte)cmd);
-//            offset += Kcp.ikcp_encode8u(ptr, offset, (byte)frg);
-//            offset += Kcp.ikcp_encode16u(ptr, offset, (UInt16)wnd);
-//            offset += Kcp.ikcp_encode32u(ptr, offset, ts);
-//            offset += Kcp.ikcp_encode32u(ptr, offset, sn);
-//            offset += Kcp.ikcp_encode32u(ptr, offset, una);
-//            offset += Kcp.ikcp_encode32u(ptr, offset, (UInt32)data.Length);
-//            return offset - offset_;
-//        }
-//    }
-//}
+        public void Dispose()
+        {
+            this.conv = 0;
+            this.cmd = 0;
+            this.frg = 0;
+            this.wnd = 0;
+            this.ts = 0;
+            this.sn = 0;
+            this.una = 0;
+            this.resendts = 0;
+            this.rto = 0;
+            this.faskack = 0;
+            this.xmit = 0;
+        }
+    }
+}

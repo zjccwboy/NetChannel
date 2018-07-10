@@ -111,56 +111,6 @@ namespace NetChannel
             return (int)(later - earlier);
         }
 
-        internal class Segment : IDisposable
-        {
-            internal uint conv;
-            internal uint cmd;
-            internal uint frg;
-            internal uint wnd;
-            internal uint ts;
-            internal uint sn;
-            internal uint una;
-            internal uint resendts;
-            internal uint rto;
-            internal uint faskack;
-            internal uint xmit;
-            internal byte[] data { get; }
-
-            internal Segment(int size = 0)
-            {
-                data = new byte[size];
-            }
-
-            internal void Encode(byte[] ptr, ref int offset)
-            {
-                uint len = (uint)data.Length;
-                ikcp_encode32u(ptr, offset, conv);
-                ikcp_encode8u(ptr, offset + 4, (byte)cmd);
-                ikcp_encode8u(ptr, offset + 5, (byte)frg);
-                ikcp_encode16u(ptr, offset + 6, (ushort)wnd);
-                ikcp_encode32u(ptr, offset + 8, ts);
-                ikcp_encode32u(ptr, offset + 12, sn);
-                ikcp_encode32u(ptr, offset + 16, una);
-                ikcp_encode32u(ptr, offset + 20, len);
-                offset += IKCP_OVERHEAD;
-            }
-
-            public void Dispose()
-            {
-                this.conv = 0;
-                this.cmd = 0;
-                this.frg = 0;
-                this.wnd = 0;
-                this.ts = 0;
-                this.sn = 0;
-                this.una = 0;
-                this.resendts = 0;
-                this.rto = 0;
-                this.faskack = 0;
-                this.xmit = 0;
-            }
-        }
-
         uint conv_;
         uint mtu_;
         uint mss_;
