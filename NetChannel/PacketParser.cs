@@ -173,12 +173,12 @@ namespace NetChannel
         Rpc,
 
         /// <summary>
-        /// KCP连接标识
+        /// Actor消息
         /// </summary>
         Actor,
 
         /// <summary>
-        /// 包体
+        /// 消息包体
         /// </summary>
         Body,
     }
