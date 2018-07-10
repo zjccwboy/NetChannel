@@ -760,6 +760,8 @@ namespace NetChannel
             return 0;
         }
 
+
+        private readonly Segment flushSegment = new Segment();
         // flush pending data
         void Flush()
         {
@@ -771,13 +773,19 @@ namespace NetChannel
             if (updated_ == 0)
                 return;
 
-            var seg = new Segment
-            {
-                conv = conv_,
-                cmd = IKCP_CMD_ACK,
-                wnd = (uint)WndUnused(),
-                una = rcv_nxt_,
-            };
+            //var seg = new Segment
+            //{
+            //    conv = conv_,
+            //    cmd = IKCP_CMD_ACK,
+            //    wnd = (uint)WndUnused(),
+            //    una = rcv_nxt_,
+            //};
+            flushSegment.Dispose();
+            var seg = flushSegment;
+            seg.conv = conv_;
+            seg.cmd = IKCP_CMD_ACK;
+            seg.wnd = (uint)WndUnused();
+            seg.una = rcv_nxt_;
 
             // flush acknowledges
             int count = (int)ackcount_;
