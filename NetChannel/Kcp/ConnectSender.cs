@@ -34,14 +34,14 @@ namespace NetChannel
         /// </summary>
         /// <param name="socket"></param>
         /// <param name="endPoint"></param>
-        /// <param name="channel"></param>
-        public static void SendACK(Socket socket, IPEndPoint endPoint, KcpChannel channel)
+        /// <param name="conv"></param>
+        public static void SendACK(Socket socket, IPEndPoint endPoint, uint conv)
         {
             var finPacket = new Packet
             {
                 KcpProtocal = KcpNetProtocal.ACK,
                 IsActorMessage = true,
-                ActorMessageId = channel.Id,
+                ActorMessageId = conv,
             };
 
             //握手包不经过KCP发送
@@ -54,14 +54,14 @@ namespace NetChannel
         /// </summary>
         /// <param name="socket"></param>
         /// <param name="endPoint"></param>
-        /// <param name="channel"></param>
-        public static void SendFIN(Socket socket, IPEndPoint endPoint, KcpChannel channel)
+        /// <param name="conv"></param>
+        public static void SendFIN(Socket socket, IPEndPoint endPoint, uint conv)
         {
             var finPacket = new Packet
             {
                 KcpProtocal = KcpNetProtocal.FIN,
                 IsActorMessage = true,
-                ActorMessageId = channel.Id,
+                ActorMessageId = conv,
             };
 
             //握手包不经过KCP发送

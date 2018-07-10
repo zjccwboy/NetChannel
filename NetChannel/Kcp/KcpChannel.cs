@@ -228,7 +228,7 @@ namespace NetChannel
             try
             {
                 Connected = false;
-                ConnectSender.SendFIN(this.NetSocket, this.RemoteEndPoint, this);
+                ConnectSender.SendFIN(this.NetSocket, this.RemoteEndPoint, this.Id);
                 OnDisConnect?.Invoke(this);
             }
             catch { }

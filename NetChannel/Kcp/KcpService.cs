@@ -157,7 +157,7 @@ namespace NetChannel
             channel.InitKcp();
             channel.OnConnect = HandleAccept;
             channel.OnConnect?.Invoke(channel);
-            ConnectSender.SendACK(this.acceptor, channel.RemoteEndPoint, channel);
+            ConnectSender.SendACK(this.acceptor, channel.RemoteEndPoint, conv);
         }
 
         /// <summary>
