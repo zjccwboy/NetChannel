@@ -30,6 +30,7 @@ namespace TestDataConvert
         [TestMethod]
         public void TestObjectConvertToJson()
         {
+            var t = "t";
             var classa = new TestClass
             {
                 TestString = "TestString",
