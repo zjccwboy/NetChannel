@@ -135,7 +135,9 @@ namespace NetChannel
             }
             catch (Exception e)
             {
+#if DEBUG
                 LogRecord.Log(LogLevel.Warn, "HandleSend", e);
+#endif
             }
         }
 
@@ -181,7 +183,9 @@ namespace NetChannel
                     {
                         IsHeartbeat = true
                     });
+#if DEBUG
                     LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"发送心跳包到服务端:{this.ClientChannel.RemoteEndPoint}.");
+#endif
                 }
             }
             else if (this.serviceType == NetServiceType.Server)
@@ -192,7 +196,9 @@ namespace NetChannel
                     var timeSpan = now - channel.LastRecvTime;
                     if (timeSpan > HeartbeatTime)
                     {
+#if DEBUG
                         LogRecord.Log(LogLevel.Info, "CheckHeadbeat", $"客户端:{channel.RemoteEndPoint}连接超时，心跳检测断开，心跳时长{timeSpan}.");
+#endif
                         channel.DisConnect();
                     }
                 }
@@ -232,12 +238,16 @@ namespace NetChannel
             {
                 if (Channels.TryRemove(channel.Id, out ANetChannel value))
                 {
+#if DEBUG
                     LogRecord.Log(LogLevel.Info, "HandleDisConnectOnServer", $"客户端:{channel.RemoteEndPoint}连接断开.");
+#endif
                 }
             }
             catch (Exception e)
             {
+#if DEBUG
                 LogRecord.Log(LogLevel.Warn, "HandleDisConnectOnServer", e);
+#endif
             }
         }
 
@@ -251,12 +261,16 @@ namespace NetChannel
             {
                 if (Channels.TryRemove(channel.Id, out ANetChannel value))
                 {
+#if DEBUG
                     LogRecord.Log(LogLevel.Info, "HandleDisConnectOnClient", $"与服务端{channel.RemoteEndPoint}连接断开.");
+#endif
                 }
             }
             catch (Exception e)
             {
+#if DEBUG
                 LogRecord.Log(LogLevel.Warn, "HandleDisConnectOnClient", e);
+#endif
             }
         }
     }

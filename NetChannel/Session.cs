@@ -86,7 +86,9 @@ namespace NetChannel
             }
             catch(Exception e)
             {
+#if DEBUG
                 LogRecord.Log(LogLevel.Warn, "Update", e);
+#endif
             }
         }
 
